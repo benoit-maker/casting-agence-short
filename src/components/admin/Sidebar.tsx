@@ -24,7 +24,7 @@ export function Sidebar({ profile }: SidebarProps) {
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    router.push("/admin/login");
+    router.push("/login");
     router.refresh();
   }
 
