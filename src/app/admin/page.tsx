@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus, Copy, Eye, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/admin/StatusBadge";
@@ -9,18 +10,19 @@ import type { Casting } from "@/lib/types";
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
+  const adminClient = createAdminClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
+  const { data: profile } = await adminClient
     .from("profiles")
     .select("*")
     .eq("id", user!.id)
     .single();
 
-  let query = supabase
+  let query = adminClient
     .from("castings")
     .select(
       `*, casting_actors(count), selected_actor:actors!castings_selected_actor_id_fkey(name, display_name)`

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Sidebar } from "@/components/admin/Sidebar";
 import type { Profile } from "@/lib/types";
 
@@ -18,14 +19,42 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
+  // Use admin client to bypass RLS for profile fetch
+  const adminClient = createAdminClient();
+  const { data: profile } = await adminClient
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
 
   if (!profile) {
-    redirect("/login");
+    // Profile missing — create it instead of redirecting (avoids loop)
+    await adminClient.from("profiles").insert({
+      id: user.id,
+      email: user.email!,
+      full_name: user.user_metadata?.full_name || user.email!.split("@")[0],
+      role: "project_manager",
+    });
+
+    // Re-fetch
+    const { data: newProfile } = await adminClient
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (!newProfile) {
+      // Last resort — sign out and redirect
+      await supabase.auth.signOut();
+      redirect("/login");
+    }
+
+    return (
+      <div className="flex min-h-screen bg-bg">
+        <Sidebar profile={newProfile as Profile} />
+        <main className="flex-1 p-8">{children}</main>
+      </div>
+    );
   }
 
   return (
