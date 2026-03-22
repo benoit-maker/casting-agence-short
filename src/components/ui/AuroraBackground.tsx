@@ -27,7 +27,7 @@ export function AuroraBackground({
           className={cn(
             `
             [--white-gradient:repeating-linear-gradient(100deg,#FFFEFC_0%,#FFFEFC_7%,transparent_10%,transparent_12%,#FFFEFC_16%)]
-            [--aurora:repeating-linear-gradient(100deg,#665DFF_10%,#F3F1FF_15%,#4A42E0_20%,#023475_25%,#665DFF_30%)]
+            [--aurora:repeating-linear-gradient(100deg,#665DFF_10%,#8B83FF_15%,#4A42E0_20%,#665DFF_25%,#023475_30%,#4A42E0_35%,#665DFF_40%)]
             [background-image:var(--white-gradient),var(--aurora)]
             [background-size:300%,_200%]
             [background-position:50%_50%,50%_50%]
