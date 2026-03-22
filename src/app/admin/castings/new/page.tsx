@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { ActorPicker } from "@/components/admin/ActorPicker";
-import { generateSlug } from "@/lib/utils";
 import type { Actor } from "@/lib/types";
 
 export default function NewCastingPage() {
@@ -43,42 +42,31 @@ export default function NewCastingPage() {
 
     setLoading(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      const res = await fetch("/api/castings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName,
+          projectName: projectName || null,
+          actorIds: selectedActors,
+        }),
+      });
 
-    if (!user) return;
+      const data = await res.json();
 
-    const slug = generateSlug();
+      if (!res.ok || !data.casting) {
+        alert("Erreur lors de la création");
+        setLoading(false);
+        return;
+      }
 
-    const { data: casting, error } = await supabase
-      .from("castings")
-      .insert({
-        slug,
-        client_name: clientName,
-        project_name: projectName || null,
-        project_manager_id: user.id,
-      })
-      .select()
-      .single();
-
-    if (error || !casting) {
+      router.push(`/admin/castings/${data.casting.id}`);
+      router.refresh();
+    } catch {
       alert("Erreur lors de la création");
       setLoading(false);
-      return;
     }
-
-    // Ajouter les acteurs au casting
-    const castingActors = selectedActors.map((actorId, index) => ({
-      casting_id: casting.id,
-      actor_id: actorId,
-      position: index,
-    }));
-
-    await supabase.from("casting_actors").insert(castingActors);
-
-    router.push(`/admin/castings/${casting.id}`);
-    router.refresh();
   }
 
   return (

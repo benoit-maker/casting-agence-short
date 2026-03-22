@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { ActorForm } from "@/components/admin/ActorForm";
 import type { Actor } from "@/lib/types";
 
@@ -9,7 +9,7 @@ export default async function EditActorPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: actor } = await supabase
     .from("actors")

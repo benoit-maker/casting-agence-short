@@ -1,13 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Plus, Video } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Button } from "@/components/ui/Button";
 import { Tag } from "@/components/ui/Tag";
 import type { Actor } from "@/lib/types";
 
 export default async function ActorsPage() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: actors } = await supabase
     .from("actors")
     .select("*")
