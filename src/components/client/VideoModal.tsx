@@ -1,7 +1,7 @@
 "use client";
 
 import { Modal } from "@/components/ui/Modal";
-import { getYouTubeId } from "@/lib/utils";
+import { getVideoEmbedUrl } from "@/lib/utils";
 
 interface VideoModalProps {
   open: boolean;
@@ -11,9 +11,9 @@ interface VideoModalProps {
 }
 
 export function VideoModal({ open, onClose, videoUrl, actorName }: VideoModalProps) {
-  const videoId = getYouTubeId(videoUrl);
+  const embedUrl = getVideoEmbedUrl(videoUrl);
 
-  if (!videoId) return null;
+  if (!embedUrl) return null;
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -23,7 +23,7 @@ export function VideoModal({ open, onClose, videoUrl, actorName }: VideoModalPro
         </h3>
         <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
           <iframe
-            src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+            src={embedUrl}
             title={`Bande démo de ${actorName}`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen

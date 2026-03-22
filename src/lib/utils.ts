@@ -12,9 +12,24 @@ export function generateSlug() {
 
 export function getYouTubeId(url: string): string | null {
   const match = url.match(
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s]+)/
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([^&\s?]+)/
   );
   return match ? match[1] : null;
+}
+
+export function getGoogleDriveId(url: string): string | null {
+  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+}
+
+export function getVideoEmbedUrl(url: string): string | null {
+  const ytId = getYouTubeId(url);
+  if (ytId) return `https://www.youtube.com/embed/${ytId}?autoplay=1`;
+
+  const driveId = getGoogleDriveId(url);
+  if (driveId) return `https://drive.google.com/file/d/${driveId}/preview`;
+
+  return null;
 }
 
 export function generateDisplayName(fullName: string): string {

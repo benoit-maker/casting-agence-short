@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Link, Film } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -15,10 +15,18 @@ interface ActorFormProps {
   actor?: Actor;
 }
 
+type VideoInputMode = "url" | "upload";
+
+const MAX_VIDEO_SIZE_MB = 100;
+const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
+const ACCEPTED_VIDEO_TYPES = ".mp4,.mov,.webm";
+const ACCEPTED_VIDEO_MIME = "video/mp4,video/quicktime,video/webm";
+
 export function ActorForm({ actor }: ActorFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(actor?.name || "");
@@ -33,6 +41,13 @@ export function ActorForm({ actor }: ActorFormProps) {
   const [videoUrl, setVideoUrl] = useState(actor?.video_url || "");
   const [isActive, setIsActive] = useState(actor?.is_active ?? true);
   const [uploading, setUploading] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [videoInputMode, setVideoInputMode] = useState<VideoInputMode>(
+    actor?.video_url && !actor.video_url.includes("youtube.com") && !actor.video_url.includes("youtu.be") && !actor.video_url.includes("drive.google.com")
+      ? "upload"
+      : "url"
+  );
 
   function toggleAge(age: string) {
     setAgeRanges((prev) =>
@@ -57,7 +72,7 @@ export function ActorForm({ actor }: ActorFormProps) {
   async function handlePhotoUpload(file: File) {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      alert("La photo ne doit pas dépasser 5 Mo");
+      alert("La photo ne doit pas depasser 5 Mo");
       return;
     }
 
@@ -82,6 +97,65 @@ export function ActorForm({ actor }: ActorFormProps) {
 
     setPhotoUrl(urlData.publicUrl);
     setUploading(false);
+  }
+
+  async function handleVideoUpload(file: File) {
+    if (!file) return;
+
+    if (file.size > MAX_VIDEO_SIZE_BYTES) {
+      alert(`La video ne doit pas depasser ${MAX_VIDEO_SIZE_MB} Mo`);
+      return;
+    }
+
+    setUploadingVideo(true);
+    setVideoUploadProgress(0);
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
+    const identifier = actor?.id || Date.now().toString();
+    const fileName = `${identifier}-${Date.now()}.${ext}`;
+    const path = `actors/videos/${fileName}`;
+
+    // Simulate progress since supabase-js doesn't expose upload progress natively
+    const progressInterval = setInterval(() => {
+      setVideoUploadProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 500);
+
+    const { error } = await supabase.storage
+      .from("actor-photos")
+      .upload(path, file, { upsert: true });
+
+    clearInterval(progressInterval);
+
+    if (error) {
+      console.error("Video upload error:", error);
+      alert("Erreur lors de l'upload de la video");
+      setUploadingVideo(false);
+      setVideoUploadProgress(0);
+      return;
+    }
+
+    setVideoUploadProgress(100);
+
+    const { data: urlData } = supabase.storage
+      .from("actor-photos")
+      .getPublicUrl(path);
+
+    setVideoUrl(urlData.publicUrl);
+    setUploadingVideo(false);
+    setVideoUploadProgress(0);
+  }
+
+  function handleRemoveVideo() {
+    setVideoUrl("");
+    if (videoInputRef.current) {
+      videoInputRef.current.value = "";
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -204,10 +278,10 @@ export function ActorForm({ actor }: ActorFormProps) {
           </div>
         </div>
 
-        {/* Tranches d'âge */}
+        {/* Tranches d'age */}
         <div>
           <label className="block text-sm font-medium text-dark mb-2">
-            Tranches d&apos;âge *
+            Tranches d&apos;age *
           </label>
           <div className="flex flex-wrap gap-2">
             {AGE_RANGES.map((age) => (
@@ -248,7 +322,7 @@ export function ActorForm({ actor }: ActorFormProps) {
               </button>
             ))}
           </div>
-          {/* Villes custom ajoutées */}
+          {/* Villes custom ajoutees */}
           <div className="flex flex-wrap gap-2 mb-3">
             {cities
               .filter((c) => !DEFAULT_CITIES.includes(c as typeof DEFAULT_CITIES[number]))
@@ -285,7 +359,7 @@ export function ActorForm({ actor }: ActorFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             id="phone"
-            label="Téléphone (interne)"
+            label="Telephone (interne)"
             placeholder="06 12 34 56 78"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -299,14 +373,106 @@ export function ActorForm({ actor }: ActorFormProps) {
           />
         </div>
 
-        {/* Vidéo */}
-        <Input
-          id="videoUrl"
-          label="URL vidéo YouTube (bande démo)"
-          placeholder="https://www.youtube.com/watch?v=..."
-          value={videoUrl}
-          onChange={(e) => setVideoUrl(e.target.value)}
-        />
+        {/* Video */}
+        <div>
+          <label className="block text-sm font-medium text-dark mb-2">
+            Video (bande demo)
+          </label>
+
+          {/* Toggle tabs URL / Upload */}
+          <div className="flex gap-1 mb-3 bg-gray-100 rounded-btn p-1 w-fit">
+            <button
+              type="button"
+              onClick={() => setVideoInputMode("url")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium transition-colors cursor-pointer ${
+                videoInputMode === "url"
+                  ? "bg-white text-dark shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Link className="w-3.5 h-3.5" />
+              URL
+            </button>
+            <button
+              type="button"
+              onClick={() => setVideoInputMode("upload")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium transition-colors cursor-pointer ${
+                videoInputMode === "upload"
+                  ? "bg-white text-dark shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Upload
+            </button>
+          </div>
+
+          {videoInputMode === "url" ? (
+            <Input
+              id="videoUrl"
+              placeholder="https://www.youtube.com/watch?v=... ou lien Google Drive"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+            />
+          ) : (
+            <div>
+              {videoUrl && videoInputMode === "upload" ? (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-card border border-gray-200">
+                  <Film className="w-5 h-5 text-primary flex-shrink-0" />
+                  <span className="text-sm text-gray-700 truncate flex-1">
+                    {videoUrl.split("/").pop() || "Video uploadee"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleRemoveVideo}
+                    className="p-1 bg-white rounded-full shadow border border-gray-200 cursor-pointer hover:bg-gray-50"
+                  >
+                    <X className="w-3 h-3 text-gray-600" />
+                  </button>
+                </div>
+              ) : uploadingVideo ? (
+                <div className="p-4 border-2 border-dashed border-primary/30 rounded-card bg-primary/5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+                    <span className="text-sm text-gray-600">
+                      Upload en cours... {videoUploadProgress}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-primary h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${videoUploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => videoInputRef.current?.click()}
+                  className="w-full p-4 border-2 border-dashed border-gray-200 rounded-card flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                >
+                  <Upload className="w-6 h-6" />
+                  <span className="text-sm">
+                    Cliquer pour uploader une video
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    MP4, MOV ou WebM — {MAX_VIDEO_SIZE_MB} Mo max
+                  </span>
+                </button>
+              )}
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept={ACCEPTED_VIDEO_MIME}
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleVideoUpload(file);
+                }}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Actif */}
         <div className="flex items-center gap-3">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/ui/Logo";
+import { AuroraBackground } from "@/components/ui/AuroraBackground";
 import { ActorCard } from "@/components/client/ActorCard";
 import { ConfirmBar } from "@/components/client/ConfirmBar";
 import { SuccessScreen } from "@/components/client/SuccessScreen";
@@ -78,9 +79,9 @@ export function CastingClientView({ casting, slug }: CastingClientViewProps) {
   }
 
   return (
-    <div className="min-h-screen bg-bg">
+    <AuroraBackground className="min-h-screen !items-start !justify-start">
       {/* Header sticky */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-200">
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 w-full">
         <div className="max-w-[1200px] mx-auto px-6 py-4 flex items-center justify-between">
           <Logo />
           <div className="text-right">
@@ -95,7 +96,7 @@ export function CastingClientView({ casting, slug }: CastingClientViewProps) {
       </header>
 
       {/* Hero section */}
-      <section className="max-w-[1200px] mx-auto px-6 py-12 text-center">
+      <section className="max-w-[1200px] mx-auto px-6 py-12 text-center w-full">
         <h1 className="text-4xl md:text-5xl font-heading font-bold text-dark mb-4">
           Choisissez{" "}
           <span className="italic text-primary">votre acteur</span>
@@ -110,7 +111,7 @@ export function CastingClientView({ casting, slug }: CastingClientViewProps) {
       </section>
 
       {/* Grid d'acteurs */}
-      <section className="max-w-[1200px] mx-auto px-6 pb-32">
+      <section className="max-w-[1200px] mx-auto px-6 pb-32 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
           {casting.actors?.map((actor: PublicActor) => (
             <ActorCard
@@ -132,6 +133,6 @@ export function CastingClientView({ casting, slug }: CastingClientViewProps) {
           loading={confirming}
         />
       )}
-    </div>
+    </AuroraBackground>
   );
 }

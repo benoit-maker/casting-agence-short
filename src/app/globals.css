@@ -34,6 +34,9 @@
   --radius-card: 16px;
   --radius-btn: 10px;
   --radius-pill: 50px;
+
+  /* Aurora animation */
+  --animate-aurora: aurora 60s linear infinite;
 }
 
 body {
@@ -64,4 +67,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .animate-bounce-in {
   animation: bounce-in 0.5s ease-out;
+}
+
+@keyframes aurora {
+  from { background-position: 50% 50%, 50% 50%; }
+  to { background-position: 350% 50%, 350% 50%; }
 }

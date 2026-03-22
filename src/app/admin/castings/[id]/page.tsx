@@ -8,6 +8,7 @@ import { Tag } from "@/components/ui/Tag";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
 import { DeleteCastingButton } from "@/components/admin/DeleteCastingButton";
+import { EditCastingActors } from "@/components/admin/EditCastingActors";
 import { getCastingUrl } from "@/lib/utils";
 import type { Actor } from "@/lib/types";
 
@@ -119,9 +120,15 @@ export default async function CastingDetailPage({
       </Card>
 
       {/* Acteurs proposés */}
-      <h2 className="text-lg font-heading font-semibold text-dark mb-4">
-        Acteurs proposés ({actors.length})
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-heading font-semibold text-dark">
+          Acteurs proposés ({actors.length})
+        </h2>
+        <EditCastingActors
+          castingId={casting.id}
+          currentActorIds={actors.map((a) => a.id)}
+        />
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {actors.map((actor) => {
           const isChosen = casting.selected_actor_id === actor.id;
