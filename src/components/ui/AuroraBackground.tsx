@@ -26,18 +26,14 @@ export function AuroraBackground({
         <div
           className={cn(
             `
-            [--white-gradient:repeating-linear-gradient(100deg,#FFFEFC_0%,#FFFEFC_7%,transparent_10%,transparent_12%,#FFFEFC_16%)]
-            [--aurora:repeating-linear-gradient(100deg,#665DFF_10%,#8B83FF_15%,#4A42E0_20%,#665DFF_25%,#023475_30%,#4A42E0_35%,#665DFF_40%)]
-            [background-image:var(--white-gradient),var(--aurora)]
-            [background-size:300%,_200%]
-            [background-position:50%_50%,50%_50%]
-            filter blur-[10px]
-            after:content-[""] after:absolute after:inset-0
-            after:[background-image:var(--white-gradient),var(--aurora)]
-            after:[background-size:200%,_100%]
-            after:animate-aurora after:[background-attachment:fixed] after:mix-blend-difference
+            [--aurora:repeating-linear-gradient(100deg,#665DFF_10%,#8B83FF_15%,#4A42E0_20%,#023475_25%,#665DFF_30%,#4A42E0_35%,#8B83FF_40%)]
+            [background-image:var(--aurora)]
+            [background-size:200%]
+            [background-position:50%_50%]
+            filter blur-[60px]
+            animate-aurora
             pointer-events-none
-            absolute -inset-[10px] opacity-40 will-change-transform`,
+            absolute -inset-[10px] opacity-20 will-change-transform`,
             showRadialGradient &&
               `[mask-image:radial-gradient(ellipse_at_100%_0%,black_10%,transparent_70%)]`
           )}
