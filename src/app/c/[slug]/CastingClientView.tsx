@@ -1,12 +1,9 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { AuroraBackground } from "@/components/ui/AuroraBackground";
 import { ActorCard } from "@/components/client/ActorCard";
 import type { PublicCasting, PublicActor } from "@/lib/types";
-
-const WHATSAPP_NUMBER = "33612345678"; // À remplacer par le vrai numéro
 
 interface CastingClientViewProps {
   casting: PublicCasting;
@@ -14,11 +11,6 @@ interface CastingClientViewProps {
 }
 
 export function CastingClientView({ casting, slug }: CastingClientViewProps) {
-  const whatsappMessage = encodeURIComponent(
-    `Bonjour ! Suite au casting pour ${casting.client_name}${casting.project_name ? ` (${casting.project_name})` : ""}, j'aimerais échanger sur les profils proposés.`
-  );
-  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
-
   return (
     <AuroraBackground className="min-h-screen !items-start !justify-start">
       {/* Header sticky */}
@@ -63,21 +55,12 @@ export function CastingClientView({ casting, slug }: CastingClientViewProps) {
         </div>
       </section>
 
-      {/* Barre WhatsApp fixe en bas */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-2xl z-40">
-        <div className="max-w-[1200px] mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+      {/* Message de contact fixe en bas */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-200 z-40">
+        <div className="max-w-[1200px] mx-auto px-6 py-4 text-center">
           <p className="text-sm text-gray-600">
-            Un profil vous intéresse ? <span className="font-medium text-dark">Contactez-nous directement.</span>
+            Veuillez contacter votre chef de projet sur WhatsApp pour lui faire part de votre choix.
           </p>
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#25D366] hover:bg-[#1da851] text-white font-heading font-medium rounded-btn transition-colors text-sm"
-          >
-            <MessageCircle className="w-5 h-5" />
-            Nous contacter sur WhatsApp
-          </a>
         </div>
       </div>
     </AuroraBackground>
