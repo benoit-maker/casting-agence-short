@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Video } from "lucide-react";
+import { Plus, Video, Link2 } from "lucide-react";
+import { CopyActorLinkButton } from "@/components/admin/CopyActorLinkButton";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Button } from "@/components/ui/Button";
 import { Tag } from "@/components/ui/Tag";
@@ -120,12 +121,15 @@ export default async function ActorsPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <Link
-                    href={`/admin/actors/${actor.id}`}
-                    className="text-sm text-primary hover:text-primary-dark font-medium"
-                  >
-                    Modifier
-                  </Link>
+                  <div className="flex items-center justify-end gap-2">
+                    <CopyActorLinkButton actorId={actor.id} />
+                    <Link
+                      href={`/admin/actors/${actor.id}`}
+                      className="text-sm text-primary hover:text-primary-dark font-medium"
+                    >
+                      Modifier
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}
