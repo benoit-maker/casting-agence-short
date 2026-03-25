@@ -62,6 +62,12 @@ export default function InscriptionPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (videos.length === 0) {
+      alert("Vous devez ajouter au moins une vidéo.");
+      return;
+    }
+
     setUploading(true);
 
     try {
@@ -302,10 +308,10 @@ export default function InscriptionPage() {
           <Card className="p-6 space-y-4">
             <h2 className="text-lg font-heading font-semibold text-dark flex items-center gap-2">
               <Film className="w-5 h-5 text-primary" />
-              Vidéos de présentation
+              Vidéos de présentation *
             </h2>
             <p className="text-sm text-gray-400">
-              Ajoutez jusqu&apos;à 4 vidéos (self-tape, bande démo, présentation...). Max 100 Mo par vidéo.
+              <strong>Une vidéo minimum obligatoire.</strong> Vous pouvez en ajouter jusqu&apos;à 4 (self-tape, bande démo, présentation...). Max 100 Mo par vidéo.
             </p>
 
             <div className="space-y-2">
