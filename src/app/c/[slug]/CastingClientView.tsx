@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { MessageCircle } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { AuroraBackground } from "@/components/ui/AuroraBackground";
 import { ActorCard } from "@/components/client/ActorCard";
-import { ConfirmBar } from "@/components/client/ConfirmBar";
-import { SuccessScreen } from "@/components/client/SuccessScreen";
 import type { PublicCasting, PublicActor } from "@/lib/types";
+
+const WHATSAPP_NUMBER = "33612345678"; // À remplacer par le vrai numéro
 
 interface CastingClientViewProps {
   casting: PublicCasting;
@@ -15,68 +14,10 @@ interface CastingClientViewProps {
 }
 
 export function CastingClientView({ casting, slug }: CastingClientViewProps) {
-  const supabase = createClient();
-  const [selectedId, setSelectedId] = useState<string | null>(
-    casting.selected_actor_id
+  const whatsappMessage = encodeURIComponent(
+    `Bonjour ! Suite au casting pour ${casting.client_name}${casting.project_name ? ` (${casting.project_name})` : ""}, j'aimerais échanger sur les profils proposés.`
   );
-  const [confirmed, setConfirmed] = useState(
-    casting.status === "selected" && !!casting.selected_actor_id
-  );
-  const [confirming, setConfirming] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  const selectedActor = casting.actors?.find(
-    (a: PublicActor) => a.id === selectedId
-  );
-
-  async function handleConfirm() {
-    if (!selectedId) return;
-    setConfirming(true);
-
-    const { data } = await supabase.rpc("select_actor_for_casting", {
-      casting_slug: slug,
-      actor_uuid: selectedId,
-    });
-
-    if ((data as any)?.success) {
-      setConfirmed(true);
-      setShowSuccess(true);
-
-      // Notify project manager
-      try {
-        await fetch("/api/notify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            castingId: casting.id,
-            actorId: selectedId,
-            slug,
-            isChange: casting.status === "selected",
-          }),
-        });
-      } catch {
-        // Don't block on notification failure
-      }
-    }
-
-    setConfirming(false);
-  }
-
-  function handleChangeChoice() {
-    setShowSuccess(false);
-    setConfirmed(false);
-    setSelectedId(null);
-  }
-
-  if (showSuccess && selectedActor) {
-    return (
-      <SuccessScreen
-        actor={selectedActor}
-        clientName={casting.client_name}
-        onChangeChoice={handleChangeChoice}
-      />
-    );
-  }
+  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
 
   return (
     <AuroraBackground className="min-h-screen !items-start !justify-start">
@@ -89,7 +30,7 @@ export function CastingClientView({ casting, slug }: CastingClientViewProps) {
               Casting pour {casting.client_name}
             </p>
             <p className="text-xs text-gray-400">
-              Sélectionnez votre acteur
+              Découvrez nos profils
             </p>
           </div>
         </div>
@@ -98,15 +39,15 @@ export function CastingClientView({ casting, slug }: CastingClientViewProps) {
       {/* Hero section */}
       <section className="max-w-[1200px] mx-auto px-6 py-12 text-center w-full">
         <h1 className="text-4xl md:text-5xl font-heading font-bold text-dark mb-4">
-          Choisissez{" "}
-          <span className="italic text-primary">votre acteur</span>
+          Découvrez{" "}
+          <span className="italic text-primary">nos profils</span>
         </h1>
         <p className="text-gray-400 max-w-lg mx-auto">
-          Découvrez les profils sélectionnés pour votre projet
+          Voici les profils sélectionnés pour votre projet
           {casting.project_name && (
             <> — <span className="font-medium text-gray-600">{casting.project_name}</span></>
           )}
-          . Cliquez sur le profil qui vous correspond le mieux.
+          . Consultez leurs bandes démo et contactez-nous pour faire votre choix.
         </p>
       </section>
 
@@ -117,22 +58,28 @@ export function CastingClientView({ casting, slug }: CastingClientViewProps) {
             <ActorCard
               key={actor.id}
               actor={actor}
-              isSelected={selectedId === actor.id}
-              onSelect={() => setSelectedId(actor.id)}
             />
           ))}
         </div>
       </section>
 
-      {/* Barre de confirmation */}
-      {selectedId && selectedActor && !showSuccess && (
-        <ConfirmBar
-          actorName={selectedActor.display_name}
-          onConfirm={handleConfirm}
-          onClear={handleChangeChoice}
-          loading={confirming}
-        />
-      )}
+      {/* Barre WhatsApp fixe en bas */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-2xl z-40">
+        <div className="max-w-[1200px] mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+          <p className="text-sm text-gray-600">
+            Un profil vous intéresse ? <span className="font-medium text-dark">Contactez-nous directement.</span>
+          </p>
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#25D366] hover:bg-[#1da851] text-white font-heading font-medium rounded-btn transition-colors text-sm"
+          >
+            <MessageCircle className="w-5 h-5" />
+            Nous contacter sur WhatsApp
+          </a>
+        </div>
+      </div>
     </AuroraBackground>
   );
 }
