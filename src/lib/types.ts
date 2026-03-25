@@ -19,6 +19,8 @@ export interface Actor {
   rate: string | null;
   photo_url: string | null;
   video_url: string | null;
+  video_urls: string[];
+  brands: string[];
   notion_id: string | null;
   is_active: boolean;
   created_at: string;
@@ -55,6 +57,7 @@ export interface PublicActor {
   cities: string[];
   photo_url: string | null;
   video_url: string | null;
+  video_urls: string[];
 }
 
 export interface PublicCasting {
