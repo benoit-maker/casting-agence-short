@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Check, X, Film, Calendar, MapPin, Clock } from "lucide-react";
+import { Check, X, Film, Camera, Calendar, MapPin, Clock, Play, ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Tag } from "@/components/ui/Tag";
+import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 
 interface Application {
@@ -30,6 +31,7 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "accepted" | "rejected" | "all">("pending");
   const [processing, setProcessing] = useState<string | null>(null);
+  const [mediaModal, setMediaModal] = useState<{ type: "photos" | "video"; urls: string[]; name: string; index: number } | null>(null);
 
   useEffect(() => {
     fetchApplications();
@@ -184,13 +186,28 @@ export default function ApplicationsPage() {
                         {app.phone && <span>{app.phone}</span>}
                       </div>
 
-                      {/* Vidéos */}
-                      {app.video_urls.length > 0 && (
-                        <div className="flex items-center gap-1 mt-2 text-xs text-primary">
-                          <Film className="w-3 h-3" />
-                          {app.video_urls.length} vidéo{app.video_urls.length > 1 ? "s" : ""}
-                        </div>
-                      )}
+                      {/* Médias cliquables */}
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {app.photo_urls.length > 1 && (
+                          <button
+                            onClick={() => setMediaModal({ type: "photos", urls: app.photo_urls, name: `${app.first_name} ${app.last_name}`, index: 0 })}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-btn border border-gray-200 text-xs font-medium text-gray-600 hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                          >
+                            <Camera className="w-3.5 h-3.5" />
+                            Voir les {app.photo_urls.length} photos
+                          </button>
+                        )}
+                        {app.video_urls.map((url, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setMediaModal({ type: "video", urls: [url], name: `${app.first_name} ${app.last_name}`, index: 0 })}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-btn border border-gray-200 text-xs font-medium text-gray-600 hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                            {app.video_urls.length === 1 ? "Voir la vidéo" : `Vidéo ${i + 1}`}
+                          </button>
+                        ))}
+                      </div>
 
                       <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
                         <Clock className="w-3 h-3" />
@@ -241,6 +258,38 @@ export default function ApplicationsPage() {
           ))
         )}
       </div>
+
+      {/* Modal photos/vidéos */}
+      {mediaModal && (
+        <Modal open={true} onClose={() => setMediaModal(null)}>
+          <div className="p-6">
+            <h3 className="text-lg font-heading font-semibold text-dark mb-4">
+              {mediaModal.type === "photos" ? "Photos" : "Vidéo"} — {mediaModal.name}
+            </h3>
+            {mediaModal.type === "photos" ? (
+              <div className="grid grid-cols-2 gap-3">
+                {mediaModal.urls.map((url, i) => (
+                  <Image
+                    key={i}
+                    src={url}
+                    alt={`Photo ${i + 1}`}
+                    width={400}
+                    height={400}
+                    className="w-full rounded-btn object-cover"
+                  />
+                ))}
+              </div>
+            ) : (
+              <video
+                src={mediaModal.urls[0]}
+                controls
+                autoPlay
+                className="w-full rounded-btn max-h-[70vh]"
+              />
+            )}
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

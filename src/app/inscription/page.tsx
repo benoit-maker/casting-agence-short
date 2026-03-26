@@ -43,7 +43,7 @@ export default function InscriptionPage() {
       .filter(
         (f) =>
           (f.type.startsWith("video/") || f.name.endsWith(".mov")) &&
-          f.size <= 100 * 1024 * 1024
+          f.size <= 500 * 1024 * 1024
       )
       .map((file) => ({ file, name: file.name }));
     setVideos((prev) => [...prev, ...newVideos].slice(0, 4));
@@ -311,7 +311,7 @@ export default function InscriptionPage() {
               Vidéos de présentation *
             </h2>
             <p className="text-sm text-gray-400">
-              <strong>Une vidéo minimum obligatoire.</strong> Vous pouvez en ajouter jusqu&apos;à 4 (self-tape, bande démo, présentation...). Max 100 Mo par vidéo.
+              <strong>Une vidéo minimum obligatoire.</strong> Vous pouvez en ajouter jusqu&apos;à 4 (self-tape, bande démo, présentation...). Max 500 Mo par vidéo.
             </p>
 
             <div className="space-y-2">
