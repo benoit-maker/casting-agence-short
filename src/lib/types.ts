@@ -21,6 +21,7 @@ export interface Actor {
   video_url: string | null;
   video_urls: string[];
   brands: string[];
+  notes: string;
   notion_id: string | null;
   is_active: boolean;
   created_at: string;

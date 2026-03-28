@@ -39,6 +39,10 @@ export function ActorForm({ actor }: ActorFormProps) {
   const [rate, setRate] = useState(actor?.rate || "");
   const [photoUrl, setPhotoUrl] = useState(actor?.photo_url || "");
   const [videoUrl, setVideoUrl] = useState(actor?.video_url || "");
+  const [videoUrls, setVideoUrls] = useState<string[]>(actor?.video_urls || []);
+  const [notes, setNotes] = useState((actor as any)?.notes || "");
+  const [brands, setBrands] = useState<string[]>(actor?.brands || []);
+  const [newBrand, setNewBrand] = useState("");
   const [isActive, setIsActive] = useState(actor?.is_active ?? true);
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
@@ -158,6 +162,22 @@ export function ActorForm({ actor }: ActorFormProps) {
     }
   }
 
+  function removeVideoFromList(index: number) {
+    setVideoUrls((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function addBrand() {
+    const trimmed = newBrand.trim();
+    if (trimmed && !brands.includes(trimmed)) {
+      setBrands((prev) => [...prev, trimmed]);
+      setNewBrand("");
+    }
+  }
+
+  function removeBrand(brand: string) {
+    setBrands((prev) => prev.filter((b) => b !== brand));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -172,6 +192,9 @@ export function ActorForm({ actor }: ActorFormProps) {
       rate: rate || null,
       photo_url: photoUrl || null,
       video_url: videoUrl || null,
+      video_urls: videoUrls,
+      notes,
+      brands,
       is_active: isActive,
     };
 
@@ -472,6 +495,102 @@ export function ActorForm({ actor }: ActorFormProps) {
               />
             </div>
           )}
+        </div>
+
+        {/* Vidéos supplémentaires (multi-vidéos) */}
+        {videoUrls.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-dark mb-2">
+              Vidéos de l&apos;acteur ({videoUrls.length})
+            </label>
+            <div className="space-y-2">
+              {videoUrls.map((url, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-btn border border-gray-200"
+                >
+                  <Film className="w-4 h-4 text-primary flex-shrink-0" />
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline truncate flex-1"
+                  >
+                    Vidéo {i + 1}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => removeVideoFromList(i)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-btn transition-colors cursor-pointer"
+                    title="Supprimer cette vidéo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tags marques (interne CDP/admin uniquement) */}
+        <div>
+          <label className="block text-sm font-medium text-dark mb-1">
+            Marques (interne)
+          </label>
+          <p className="text-xs text-gray-400 mb-2">
+            Marques avec lesquelles l&apos;acteur a travaillé. Visible uniquement par les CDP.
+          </p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {brands.map((brand) => (
+              <span
+                key={brand}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-light text-primary rounded-pill text-sm font-medium"
+              >
+                {brand}
+                <button
+                  type="button"
+                  onClick={() => removeBrand(brand)}
+                  className="hover:text-primary-dark cursor-pointer"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Nom de la marque..."
+              value={newBrand}
+              onChange={(e) => setNewBrand(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addBrand();
+                }
+              }}
+            />
+            <Button type="button" variant="secondary" onClick={addBrand}>
+              Ajouter
+            </Button>
+          </div>
+        </div>
+
+        {/* Notes internes (CDP/admin uniquement) */}
+        <div>
+          <label htmlFor="notes" className="block text-sm font-medium text-dark mb-1">
+            Notes internes
+          </label>
+          <p className="text-xs text-gray-400 mb-2">
+            Visible uniquement par les CDP et super admins. Jamais affiché aux clients.
+          </p>
+          <textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Notes sur l'acteur, observations, retour client..."
+            rows={4}
+            className="w-full px-4 py-2.5 rounded-btn border border-gray-200 bg-white text-dark placeholder:text-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200 resize-y"
+          />
         </div>
 
         {/* Actif */}
