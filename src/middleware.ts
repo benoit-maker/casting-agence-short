@@ -30,17 +30,12 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
-  const isLoginPage = request.nextUrl.pathname === "/admin/login";
-
-  // Don't redirect the login page itself
-  if (isLoginPage && !user) {
-    return supabaseResponse;
-  }
+  const isLoginPage = request.nextUrl.pathname === "/login";
 
   // Redirect unauthenticated users to login
   if (isAdminRoute && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/admin/login";
+    url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
@@ -55,5 +50,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/login"],
 };
