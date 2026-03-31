@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
       phone: app.phone || null,
       photo_url: app.photo_urls?.[0] || null,
       video_url: app.video_urls?.[0] || null,
+      video_urls: app.video_urls || [],
       is_active: true,
     })
     .select()

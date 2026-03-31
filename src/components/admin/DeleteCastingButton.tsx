@@ -3,18 +3,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 
 export function DeleteCastingButton({ castingId }: { castingId: string }) {
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
 
   async function handleDelete() {
     setLoading(true);
-    await supabase.from("castings").delete().eq("id", castingId);
+    const res = await fetch(`/api/castings/${castingId}`, { method: "DELETE" });
+    if (!res.ok) {
+      alert("Erreur lors de la suppression");
+      setLoading(false);
+      return;
+    }
     router.push("/admin");
     router.refresh();
   }

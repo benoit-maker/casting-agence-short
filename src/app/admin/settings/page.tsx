@@ -23,11 +23,11 @@ export default function SettingsPage() {
   }, []);
 
   async function fetchProfiles() {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at");
-    setProfiles((data as Profile[]) || []);
+    const res = await fetch("/api/admin/profiles");
+    if (res.ok) {
+      const data = await res.json();
+      setProfiles(data.profiles || []);
+    }
     setLoading(false);
   }
 
@@ -62,10 +62,14 @@ export default function SettingsPage() {
   async function toggleRole(profile: Profile) {
     const newRole =
       profile.role === "super_admin" ? "project_manager" : "super_admin";
-    await supabase
-      .from("profiles")
-      .update({ role: newRole })
-      .eq("id", profile.id);
+    const res = await fetch("/api/admin/toggle-role", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profileId: profile.id, newRole }),
+    });
+    if (!res.ok) {
+      alert("Erreur lors du changement de rôle");
+    }
     fetchProfiles();
   }
 

@@ -29,6 +29,7 @@ export function ActorForm({ actor }: ActorFormProps) {
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState(actor?.name || "");
   const [displayName, setDisplayName] = useState(actor?.display_name || "");
   const [sex, setSex] = useState<"Femme" | "Homme">(actor?.sex || "Femme");
@@ -181,6 +182,7 @@ export function ActorForm({ actor }: ActorFormProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     const data = {
       name,
@@ -198,14 +200,29 @@ export function ActorForm({ actor }: ActorFormProps) {
       is_active: isActive,
     };
 
-    if (actor) {
-      await supabase.from("actors").update(data).eq("id", actor.id);
-    } else {
-      await supabase.from("actors").insert(data);
-    }
+    try {
+      const url = actor ? `/api/actors/${actor.id}` : "/api/actors";
+      const method = actor ? "PUT" : "POST";
 
-    router.push("/admin/actors");
-    router.refresh();
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const result = await res.json();
+        setError(result.error || "Erreur lors de l'enregistrement");
+        setLoading(false);
+        return;
+      }
+
+      router.push("/admin/actors");
+      router.refresh();
+    } catch {
+      setError("Erreur réseau, veuillez réessayer");
+      setLoading(false);
+    }
   }
 
   return (
@@ -613,6 +630,12 @@ export function ActorForm({ actor }: ActorFormProps) {
           </span>
         </div>
       </Card>
+
+      {error && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-btn text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
       <div className="flex justify-end gap-3 mt-6">
         <Button
