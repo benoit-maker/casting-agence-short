@@ -32,6 +32,7 @@ export default function ApplicationsPage() {
   const [filter, setFilter] = useState<"pending" | "accepted" | "rejected" | "all">("pending");
   const [processing, setProcessing] = useState<string | null>(null);
   const [mediaModal, setMediaModal] = useState<{ type: "photos" | "video"; urls: string[]; name: string; index: number } | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchApplications();
@@ -134,128 +135,232 @@ export default function ApplicationsPage() {
             Aucune candidature {filter !== "all" ? "dans cette catégorie" : ""}.
           </Card>
         ) : (
-          filtered.map((app) => (
-            <Card key={app.id} className="p-6">
-              <div className="flex gap-6">
-                {/* Photos */}
-                <div className="flex-shrink-0">
-                  {app.photo_urls.length > 0 ? (
-                    <Image
-                      src={app.photo_urls[0]}
-                      alt={`${app.first_name} ${app.last_name}`}
-                      width={120}
-                      height={120}
-                      className="w-30 h-30 rounded-card object-cover"
-                    />
-                  ) : (
-                    <div className="w-30 h-30 rounded-card bg-primary-light flex items-center justify-center text-2xl font-heading font-bold text-primary">
-                      {app.first_name[0]}
-                      {app.last_name[0]}
-                    </div>
-                  )}
-                  {app.photo_urls.length > 1 && (
-                    <p className="text-xs text-gray-400 text-center mt-1">
-                      +{app.photo_urls.length - 1} photo{app.photo_urls.length > 2 ? "s" : ""}
-                    </p>
-                  )}
-                </div>
+          filtered.map((app) => {
+            const isExpanded = expandedId === app.id;
+            const age = app.date_of_birth
+              ? Math.floor((Date.now() - new Date(app.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+              : null;
 
-                {/* Infos */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-heading font-semibold text-dark">
-                        {app.first_name} {app.last_name}
-                      </h3>
-                      <div className="flex flex-wrap items-center gap-2 mt-2">
+            return (
+              <Card key={app.id} className="overflow-hidden">
+                {/* En-tête cliquable */}
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(isExpanded ? null : app.id)}
+                  className="w-full p-6 text-left cursor-pointer hover:bg-gray-50/50 transition-colors"
+                >
+                  <div className="flex gap-5 items-center">
+                    {/* Photo miniature */}
+                    <div className="flex-shrink-0">
+                      {app.photo_urls.length > 0 ? (
+                        <Image
+                          src={app.photo_urls[0]}
+                          alt={`${app.first_name} ${app.last_name}`}
+                          width={72}
+                          height={72}
+                          className="w-18 h-18 rounded-card object-cover"
+                        />
+                      ) : (
+                        <div className="w-18 h-18 rounded-card bg-primary-light flex items-center justify-center text-xl font-heading font-bold text-primary">
+                          {app.first_name[0]}{app.last_name[0]}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Résumé */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-heading font-semibold text-dark">
+                          {app.first_name} {app.last_name}
+                        </h3>
                         <Tag variant={app.sex === "Femme" ? "female" : "male"}>
                           {app.sex}
                         </Tag>
-                        <Tag variant="city">{app.city}</Tag>
-                        {app.date_of_birth && (
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {new Date(app.date_of_birth).toLocaleDateString("fr-FR")}
-                          </span>
+                        {age !== null && (
+                          <span className="text-sm text-gray-500">{age} ans</span>
                         )}
                       </div>
-
-                      {/* Contact */}
-                      <div className="flex gap-4 mt-2 text-xs text-gray-400">
-                        {app.email && <span>{app.email}</span>}
-                        {app.phone && <span>{app.phone}</span>}
-                      </div>
-
-                      {/* Médias cliquables */}
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {app.photo_urls.length > 1 && (
-                          <button
-                            onClick={() => setMediaModal({ type: "photos", urls: app.photo_urls, name: `${app.first_name} ${app.last_name}`, index: 0 })}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-btn border border-gray-200 text-xs font-medium text-gray-600 hover:border-primary hover:text-primary transition-colors cursor-pointer"
-                          >
-                            <Camera className="w-3.5 h-3.5" />
-                            Voir les {app.photo_urls.length} photos
-                          </button>
-                        )}
-                        {app.video_urls.map((url, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setMediaModal({ type: "video", urls: [url], name: `${app.first_name} ${app.last_name}`, index: 0 })}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-btn border border-gray-200 text-xs font-medium text-gray-600 hover:border-primary hover:text-primary transition-colors cursor-pointer"
-                          >
-                            <Play className="w-3.5 h-3.5" />
-                            {app.video_urls.length === 1 ? "Voir la vidéo" : `Vidéo ${i + 1}`}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
-                        <Clock className="w-3 h-3" />
-                        {new Date(app.created_at).toLocaleDateString("fr-FR", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
+                      <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {app.city}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Camera className="w-3.5 h-3.5" />
+                          {app.photo_urls.length} photo{app.photo_urls.length > 1 ? "s" : ""}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Film className="w-3.5 h-3.5" />
+                          {app.video_urls.length} vidéo{app.video_urls.length > 1 ? "s" : ""}
+                        </span>
+                        <span className="flex items-center gap-1 text-gray-400">
+                          <Clock className="w-3.5 h-3.5" />
+                          {new Date(app.created_at).toLocaleDateString("fr-FR", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    {app.status === "pending" ? (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => handleReject(app)}
-                          loading={processing === app.id}
+                    {/* Statut / Actions rapides */}
+                    <div className="flex-shrink-0 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      {app.status === "pending" ? (
+                        <>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleReject(app)}
+                            loading={processing === app.id}
+                          >
+                            <X className="w-4 h-4" />
+                            Refuser
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleAccept(app)}
+                            loading={processing === app.id}
+                            className="bg-success hover:bg-success/90"
+                          >
+                            <Check className="w-4 h-4" />
+                            Accepter
+                          </Button>
+                        </>
+                      ) : (
+                        <span
+                          className={cn(
+                            "text-xs font-medium px-3 py-1.5 rounded-pill",
+                            app.status === "accepted"
+                              ? "bg-green-50 text-success"
+                              : "bg-red-50 text-red-500"
+                          )}
                         >
-                          <X className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleAccept(app)}
-                          loading={processing === app.id}
-                          className="bg-success hover:bg-success/90"
-                        >
-                          <Check className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <span
-                        className={cn(
-                          "text-xs font-medium px-3 py-1 rounded-pill",
-                          app.status === "accepted"
-                            ? "bg-green-50 text-success"
-                            : "bg-red-50 text-red-500"
-                        )}
-                      >
-                        {app.status === "accepted" ? "Accepté" : "Refusé"}
-                      </span>
-                    )}
+                          {app.status === "accepted" ? "✓ Accepté" : "✕ Refusé"}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            </Card>
-          ))
+                </button>
+
+                {/* Détail déplié */}
+                {isExpanded && (
+                  <div className="border-t border-gray-200 p-6 bg-gray-50/30">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Infos personnelles */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-dark mb-3 uppercase tracking-wide">
+                          Informations
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Nom complet</span>
+                            <span className="font-medium text-dark">{app.first_name} {app.last_name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Sexe</span>
+                            <span className="font-medium text-dark">{app.sex}</span>
+                          </div>
+                          {app.date_of_birth && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Date de naissance</span>
+                              <span className="font-medium text-dark">
+                                {new Date(app.date_of_birth).toLocaleDateString("fr-FR")}
+                                {age !== null && ` (${age} ans)`}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Ville</span>
+                            <span className="font-medium text-dark">{app.city}</span>
+                          </div>
+                          {app.email && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Email</span>
+                              <a href={`mailto:${app.email}`} className="font-medium text-primary hover:underline">{app.email}</a>
+                            </div>
+                          )}
+                          {app.phone && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Téléphone</span>
+                              <a href={`tel:${app.phone}`} className="font-medium text-primary hover:underline">{app.phone}</a>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Candidature reçue</span>
+                            <span className="font-medium text-dark">
+                              {new Date(app.created_at).toLocaleDateString("fr-FR", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Photos */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-dark mb-3 uppercase tracking-wide">
+                          Photos ({app.photo_urls.length})
+                        </h4>
+                        {app.photo_urls.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {app.photo_urls.map((url, i) => (
+                              <button
+                                key={i}
+                                onClick={() => setMediaModal({ type: "photos", urls: app.photo_urls, name: `${app.first_name} ${app.last_name}`, index: i })}
+                                className="cursor-pointer hover:opacity-80 transition-opacity"
+                              >
+                                <Image
+                                  src={url}
+                                  alt={`Photo ${i + 1}`}
+                                  width={100}
+                                  height={100}
+                                  className="w-24 h-24 rounded-btn object-cover"
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">Aucune photo</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Vidéos */}
+                    <div className="mt-6">
+                      <h4 className="text-sm font-semibold text-dark mb-3 uppercase tracking-wide">
+                        Vidéos ({app.video_urls.length})
+                      </h4>
+                      {app.video_urls.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {app.video_urls.map((url, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setMediaModal({ type: "video", urls: [url], name: `${app.first_name} ${app.last_name}`, index: 0 })}
+                              className="flex items-center gap-3 p-4 bg-white rounded-btn border border-gray-200 hover:border-primary hover:shadow-sm transition-all cursor-pointer text-left"
+                            >
+                              <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+                                <Play className="w-5 h-5 text-primary" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-dark">Vidéo {i + 1}</p>
+                                <p className="text-xs text-gray-400">Cliquer pour lire</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-400 italic">Aucune vidéo</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </Card>
+            );
+          })
         )}
       </div>
 
