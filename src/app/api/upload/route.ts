@@ -1,32 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+// Generate a signed upload URL so the client can upload directly to Supabase Storage
+// This bypasses the Vercel function body size limit
 export async function POST(request: NextRequest) {
-  const formData = await request.formData();
-  const file = formData.get("file") as File;
-  const folder = formData.get("folder") as string;
+  const { fileName, contentType, folder } = await request.json();
 
-  if (!file || !folder) {
-    return NextResponse.json({ error: "Fichier et dossier requis" }, { status: 400 });
+  if (!fileName || !folder) {
+    return NextResponse.json({ error: "fileName et folder requis" }, { status: 400 });
   }
 
   // Only allow applications/ folder for public uploads
-  if (!folder.startsWith("applications/")) {
+  if (!folder.startsWith("applications")) {
     return NextResponse.json({ error: "Dossier non autorisé" }, { status: 403 });
   }
 
-  const ext = file.name.split(".").pop() || "bin";
+  const ext = fileName.split(".").pop() || "bin";
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
   const admin = createAdminClient();
-  const buffer = Buffer.from(await file.arrayBuffer());
 
-  const { error } = await admin.storage
+  const { data, error } = await admin.storage
     .from("actor-photos")
-    .upload(path, buffer, {
-      contentType: file.type,
-      upsert: true,
-    });
+    .createSignedUploadUrl(path);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -36,5 +32,10 @@ export async function POST(request: NextRequest) {
     .from("actor-photos")
     .getPublicUrl(path);
 
-  return NextResponse.json({ url: urlData.publicUrl });
+  return NextResponse.json({
+    signedUrl: data.signedUrl,
+    token: data.token,
+    path,
+    publicUrl: urlData.publicUrl,
+  });
 }

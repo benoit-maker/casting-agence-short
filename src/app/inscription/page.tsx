@@ -22,6 +22,7 @@ export default function InscriptionPage() {
   const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
   const [videos, setVideos] = useState<{ file: File; name: string }[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   function handlePhotoAdd(files: FileList | null) {
@@ -69,31 +70,52 @@ export default function InscriptionPage() {
     setUploading(true);
 
     try {
-      // Upload photos via API route (bypasses storage RLS)
-      const photoUrls: string[] = [];
-      for (const { file } of photos) {
-        const form = new FormData();
-        form.append("file", file);
-        form.append("folder", "applications");
-        const res = await fetch("/api/upload", { method: "POST", body: form });
-        if (res.ok) {
-          const { url } = await res.json();
-          photoUrls.push(url);
+      // Helper: get signed URL then upload file directly to Supabase Storage
+      async function uploadFile(file: File, folder: string): Promise<string | null> {
+        // Step 1: Get signed upload URL from our API
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType: file.type,
+            folder,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Erreur serveur" }));
+          throw new Error(err.error || "Impossible d'obtenir l'URL d'upload");
         }
+        const { signedUrl, publicUrl } = await res.json();
+
+        // Step 2: Upload file directly to Supabase Storage (no Vercel size limit)
+        const uploadRes = await fetch(signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+          body: file,
+        });
+        if (!uploadRes.ok) {
+          throw new Error(`Échec de l'upload de ${file.name}`);
+        }
+        return publicUrl;
       }
 
-      // Upload videos via API route
-      const videoUrls: string[] = [];
-      for (const { file } of videos) {
-        const form = new FormData();
-        form.append("file", file);
-        form.append("folder", "applications/videos");
-        const res = await fetch("/api/upload", { method: "POST", body: form });
-        if (res.ok) {
-          const { url } = await res.json();
-          videoUrls.push(url);
-        }
+      // Upload photos
+      const photoUrls: string[] = [];
+      for (let i = 0; i < photos.length; i++) {
+        setUploadStatus(`Upload photo ${i + 1}/${photos.length}...`);
+        const url = await uploadFile(photos[i].file, "applications");
+        if (url) photoUrls.push(url);
       }
+
+      // Upload videos
+      const videoUrls: string[] = [];
+      for (let i = 0; i < videos.length; i++) {
+        setUploadStatus(`Upload vidéo ${i + 1}/${videos.length}...`);
+        const url = await uploadFile(videos[i].file, "applications/videos");
+        if (url) videoUrls.push(url);
+      }
+      setUploadStatus("Enregistrement de la candidature...");
 
       // Create application record via API route
       const res = await fetch("/api/applications", {
@@ -117,11 +139,12 @@ export default function InscriptionPage() {
       } else {
         setSubmitted(true);
       }
-    } catch {
-      alert("Erreur lors de l'envoi. Veuillez réessayer.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erreur lors de l'envoi. Veuillez réessayer.");
     }
 
     setUploading(false);
+    setUploadStatus("");
   }
 
   if (submitted) {
@@ -362,7 +385,7 @@ export default function InscriptionPage() {
             size="lg"
             loading={uploading}
           >
-            {uploading ? "Envoi en cours..." : "Envoyer ma candidature"}
+            {uploading ? (uploadStatus || "Envoi en cours...") : "Envoyer ma candidature"}
           </Button>
         </form>
       </div>
