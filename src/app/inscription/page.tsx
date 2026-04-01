@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import { Upload, X, Check, Camera, Film } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -10,7 +9,6 @@ import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 
 export default function InscriptionPage() {
-  const supabase = createClient();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,54 +69,51 @@ export default function InscriptionPage() {
     setUploading(true);
 
     try {
-      // Upload photos
+      // Upload photos via API route (bypasses storage RLS)
       const photoUrls: string[] = [];
       for (const { file } of photos) {
-        const ext = file.name.split(".").pop() || "jpg";
-        const path = `applications/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error } = await supabase.storage
-          .from("actor-photos")
-          .upload(path, file);
-        if (!error) {
-          const { data: urlData } = supabase.storage
-            .from("actor-photos")
-            .getPublicUrl(path);
-          photoUrls.push(urlData.publicUrl);
+        const form = new FormData();
+        form.append("file", file);
+        form.append("folder", "applications");
+        const res = await fetch("/api/upload", { method: "POST", body: form });
+        if (res.ok) {
+          const { url } = await res.json();
+          photoUrls.push(url);
         }
       }
 
-      // Upload videos
+      // Upload videos via API route
       const videoUrls: string[] = [];
       for (const { file } of videos) {
-        const ext = file.name.split(".").pop() || "mp4";
-        const path = `applications/videos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error } = await supabase.storage
-          .from("actor-photos")
-          .upload(path, file);
-        if (!error) {
-          const { data: urlData } = supabase.storage
-            .from("actor-photos")
-            .getPublicUrl(path);
-          videoUrls.push(urlData.publicUrl);
+        const form = new FormData();
+        form.append("file", file);
+        form.append("folder", "applications/videos");
+        const res = await fetch("/api/upload", { method: "POST", body: form });
+        if (res.ok) {
+          const { url } = await res.json();
+          videoUrls.push(url);
         }
       }
 
-      // Create application record
-      const { error } = await supabase.from("applications").insert({
-        first_name: firstName,
-        last_name: lastName,
-        date_of_birth: dateOfBirth || null,
-        city,
-        sex,
-        email: email || null,
-        phone: phone || null,
-        photo_urls: photoUrls,
-        video_urls: videoUrls,
+      // Create application record via API route
+      const res = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          date_of_birth: dateOfBirth || null,
+          city,
+          sex,
+          email: email || null,
+          phone: phone || null,
+          photo_urls: photoUrls,
+          video_urls: videoUrls,
+        }),
       });
 
-      if (error) {
+      if (!res.ok) {
         alert("Erreur lors de l'envoi. Veuillez réessayer.");
-        console.error(error);
       } else {
         setSubmitted(true);
       }
