@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, X, Check, Camera, Film } from "lucide-react";
+import { Upload, X, Check, Camera, Film, Link, Plus } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 export default function InscriptionPage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -20,10 +21,19 @@ export default function InscriptionPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
-  const [videos, setVideos] = useState<{ file: File; name: string }[]>([]);
+  const [videoItems, setVideoItems] = useState<
+    { type: "file"; file: File; name: string }[] | { type: "link"; url: string }[]
+  >([]);
+  const [newVideoLink, setNewVideoLink] = useState("");
+  const [showLinkInput, setShowLinkInput] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  type VideoItem = { type: "file"; file: File; name: string } | { type: "link"; url: string };
+  const MAX_VIDEO_ITEMS = 3;
+
+  const totalVideoItems = (videoItems as VideoItem[]).length;
 
   function handlePhotoAdd(files: FileList | null) {
     if (!files) return;
@@ -36,15 +46,23 @@ export default function InscriptionPage() {
     setPhotos((prev) => [...prev, ...newPhotos].slice(0, 5));
   }
 
-  function handleVideoAdd(files: FileList | null) {
+  function handleVideoFileAdd(files: FileList | null) {
     if (!files) return;
-    const newVideos = Array.from(files)
-      .filter(
-        (f) =>
-          f.type.startsWith("video/") || f.name.endsWith(".mov")
-      )
-      .map((file) => ({ file, name: file.name }));
-    setVideos((prev) => [...prev, ...newVideos].slice(0, 4));
+    const remaining = MAX_VIDEO_ITEMS - totalVideoItems;
+    if (remaining <= 0) return;
+    const newFiles: VideoItem[] = Array.from(files)
+      .filter((f) => f.type.startsWith("video/") || f.name.endsWith(".mov"))
+      .slice(0, remaining)
+      .map((file) => ({ type: "file" as const, file, name: file.name }));
+    setVideoItems((prev) => [...(prev as VideoItem[]), ...newFiles] as any);
+  }
+
+  function addVideoLink() {
+    const trimmed = newVideoLink.trim();
+    if (!trimmed || totalVideoItems >= MAX_VIDEO_ITEMS) return;
+    setVideoItems((prev) => [...(prev as VideoItem[]), { type: "link", url: trimmed }] as any);
+    setNewVideoLink("");
+    setShowLinkInput(false);
   }
 
   function removePhoto(index: number) {
@@ -54,24 +72,27 @@ export default function InscriptionPage() {
     });
   }
 
-  function removeVideo(index: number) {
-    setVideos((prev) => prev.filter((_, i) => i !== index));
+  function removeVideoItem(index: number) {
+    setVideoItems((prev) => (prev as VideoItem[]).filter((_, i) => i !== index) as any);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (videos.length === 0) {
-      alert("Vous devez ajouter au moins une vidéo.");
+    const items = videoItems as VideoItem[];
+    if (items.length === 0) {
+      alert("Vous devez ajouter au moins une vidéo ou un lien.");
       return;
     }
 
     setUploading(true);
 
     try {
-      // Helper: get signed URL then upload file directly to Supabase Storage
-      async function uploadFile(file: File, folder: string): Promise<string | null> {
-        // Step 1: Get signed upload URL from our API
+      const supabase = createClient();
+
+      // Helper: get signed URL from API, then upload via Supabase JS client
+      async function uploadFile(file: File, folder: string): Promise<string> {
+        // Step 1: Get signed upload URL + token from our API (uses admin client)
         const res = await fetch("/api/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -85,20 +106,15 @@ export default function InscriptionPage() {
           const err = await res.json().catch(() => ({ error: "Erreur serveur" }));
           throw new Error(err.error || "Impossible d'obtenir l'URL d'upload");
         }
-        const { signedUrl, token, publicUrl } = await res.json();
+        const { path, token, publicUrl } = await res.json();
 
-        // Step 2: Upload file directly to Supabase Storage via FormData
-        // Supabase signed upload expects multipart/form-data with file in empty-key field
-        const formData = new FormData();
-        formData.append("", file);
+        // Step 2: Upload via Supabase JS client (handles protocol correctly)
+        const { error } = await supabase.storage
+          .from("actor-photos")
+          .uploadToSignedUrl(path, token, file, { upsert: true });
 
-        const uploadRes = await fetch(signedUrl, {
-          method: "PUT",
-          body: formData,
-        });
-        if (!uploadRes.ok) {
-          const errText = await uploadRes.text().catch(() => "");
-          console.error(`Upload failed for ${file.name}:`, uploadRes.status, errText);
+        if (error) {
+          console.error(`Upload failed for ${file.name}:`, error);
           throw new Error(`Échec de l'upload de ${file.name}`);
         }
         return publicUrl;
@@ -109,16 +125,23 @@ export default function InscriptionPage() {
       for (let i = 0; i < photos.length; i++) {
         setUploadStatus(`Upload photo ${i + 1}/${photos.length}...`);
         const url = await uploadFile(photos[i].file, "applications");
-        if (url) photoUrls.push(url);
+        photoUrls.push(url);
       }
 
-      // Upload videos
+      // Process video items (upload files + collect links)
       const videoUrls: string[] = [];
-      for (let i = 0; i < videos.length; i++) {
-        setUploadStatus(`Upload vidéo ${i + 1}/${videos.length}...`);
-        const url = await uploadFile(videos[i].file, "applications/videos");
-        if (url) videoUrls.push(url);
+      const fileItems = items.filter((item): item is VideoItem & { type: "file" } => item.type === "file");
+      const linkItems = items.filter((item): item is VideoItem & { type: "link" } => item.type === "link");
+
+      for (let i = 0; i < fileItems.length; i++) {
+        setUploadStatus(`Upload vidéo ${i + 1}/${fileItems.length}...`);
+        const url = await uploadFile(fileItems[i].file, "applications/videos");
+        videoUrls.push(url);
       }
+      for (const link of linkItems) {
+        videoUrls.push(link.url);
+      }
+
       setUploadStatus("Enregistrement de la candidature...");
 
       // Create application record via API route
@@ -333,52 +356,98 @@ export default function InscriptionPage() {
               Vidéos de présentation *
             </h2>
             <p className="text-sm text-gray-400">
-              <strong>Une vidéo minimum obligatoire.</strong> Vous pouvez en ajouter jusqu&apos;à 4 (self-tape, bande démo, présentation...).
+              <strong>Un contenu minimum obligatoire.</strong> Importez des fichiers vidéo ou collez des liens (YouTube, Google Drive...). Maximum {MAX_VIDEO_ITEMS} contenus au total.
             </p>
 
             <div className="space-y-2">
-              {videos.map((video, i) => (
+              {(videoItems as VideoItem[]).map((item, i) => (
                 <div
                   key={i}
                   className="flex items-center justify-between bg-gray-100 rounded-btn px-4 py-3"
                 >
-                  <div className="flex items-center gap-2">
-                    <Film className="w-4 h-4 text-primary" />
-                    <span className="text-sm text-dark truncate max-w-[250px]">
-                      {video.name}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      ({Math.round(video.file.size / 1024 / 1024)} Mo)
-                    </span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    {item.type === "file" ? (
+                      <>
+                        <Film className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span className="text-sm text-dark truncate max-w-[250px]">
+                          {item.name}
+                        </span>
+                        <span className="text-xs text-gray-400 flex-shrink-0">
+                          ({Math.round(item.file.size / 1024 / 1024)} Mo)
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Link className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span className="text-sm text-dark truncate max-w-[280px]">
+                          {item.url}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <button
                     type="button"
-                    onClick={() => removeVideo(i)}
-                    className="text-gray-400 hover:text-red-500 cursor-pointer"
+                    onClick={() => removeVideoItem(i)}
+                    className="text-gray-400 hover:text-red-500 cursor-pointer flex-shrink-0 ml-2"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               ))}
 
-              {videos.length < 4 && (
-                <button
-                  type="button"
-                  onClick={() => videoInputRef.current?.click()}
-                  className="w-full py-4 rounded-btn border-2 border-dashed border-gray-200 flex items-center justify-center gap-2 text-gray-400 hover:border-primary hover:text-primary transition-colors cursor-pointer"
-                >
-                  <Upload className="w-5 h-5" />
-                  <span className="text-sm">Ajouter une vidéo</span>
-                </button>
+              {totalVideoItems < MAX_VIDEO_ITEMS && (
+                <>
+                  {showLinkInput ? (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="https://youtube.com/... ou lien Google Drive"
+                        value={newVideoLink}
+                        onChange={(e) => setNewVideoLink(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addVideoLink();
+                          }
+                        }}
+                      />
+                      <Button type="button" variant="secondary" onClick={addVideoLink}>
+                        OK
+                      </Button>
+                      <Button type="button" variant="ghost" onClick={() => { setShowLinkInput(false); setNewVideoLink(""); }}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => videoInputRef.current?.click()}
+                        className="py-4 rounded-btn border-2 border-dashed border-gray-200 flex items-center justify-center gap-2 text-gray-400 hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                      >
+                        <Upload className="w-5 h-5" />
+                        <span className="text-sm">Importer une vidéo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowLinkInput(true)}
+                        className="py-4 rounded-btn border-2 border-dashed border-gray-200 flex items-center justify-center gap-2 text-gray-400 hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                      >
+                        <Link className="w-5 h-5" />
+                        <span className="text-sm">Coller un lien</span>
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
+            <p className="text-xs text-gray-400">{totalVideoItems}/{MAX_VIDEO_ITEMS} contenus ajoutés</p>
             <input
               ref={videoInputRef}
               type="file"
               accept="video/mp4,video/quicktime,video/webm,.mov"
               multiple
               className="hidden"
-              onChange={(e) => handleVideoAdd(e.target.files)}
+              onChange={(e) => handleVideoFileAdd(e.target.files)}
             />
           </Card>
 
