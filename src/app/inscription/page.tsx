@@ -28,7 +28,7 @@ export default function InscriptionPage() {
   function handlePhotoAdd(files: FileList | null) {
     if (!files) return;
     const newPhotos = Array.from(files)
-      .filter((f) => f.type.startsWith("image/") && f.size <= 10 * 1024 * 1024)
+      .filter((f) => f.type.startsWith("image/"))
       .map((file) => ({
         file,
         preview: URL.createObjectURL(file),
@@ -41,8 +41,7 @@ export default function InscriptionPage() {
     const newVideos = Array.from(files)
       .filter(
         (f) =>
-          (f.type.startsWith("video/") || f.name.endsWith(".mov")) &&
-          f.size <= 500 * 1024 * 1024
+          f.type.startsWith("video/") || f.name.endsWith(".mov")
       )
       .map((file) => ({ file, name: file.name }));
     setVideos((prev) => [...prev, ...newVideos].slice(0, 4));
@@ -86,15 +85,20 @@ export default function InscriptionPage() {
           const err = await res.json().catch(() => ({ error: "Erreur serveur" }));
           throw new Error(err.error || "Impossible d'obtenir l'URL d'upload");
         }
-        const { signedUrl, publicUrl } = await res.json();
+        const { signedUrl, token, publicUrl } = await res.json();
 
-        // Step 2: Upload file directly to Supabase Storage (no Vercel size limit)
+        // Step 2: Upload file directly to Supabase Storage via FormData
+        // Supabase signed upload expects multipart/form-data with file in empty-key field
+        const formData = new FormData();
+        formData.append("", file);
+
         const uploadRes = await fetch(signedUrl, {
           method: "PUT",
-          headers: { "Content-Type": file.type || "application/octet-stream" },
-          body: file,
+          body: formData,
         });
         if (!uploadRes.ok) {
+          const errText = await uploadRes.text().catch(() => "");
+          console.error(`Upload failed for ${file.name}:`, uploadRes.status, errText);
           throw new Error(`Échec de l'upload de ${file.name}`);
         }
         return publicUrl;
@@ -280,7 +284,7 @@ export default function InscriptionPage() {
               Photos
             </h2>
             <p className="text-sm text-gray-400">
-              Ajoutez jusqu&apos;à 5 photos (portrait de face, profil, plan large...). Max 10 Mo par photo.
+              Ajoutez jusqu&apos;à 5 photos (portrait de face, profil, plan large...).
             </p>
 
             <div className="flex flex-wrap gap-3">
@@ -329,7 +333,7 @@ export default function InscriptionPage() {
               Vidéos de présentation *
             </h2>
             <p className="text-sm text-gray-400">
-              <strong>Une vidéo minimum obligatoire.</strong> Vous pouvez en ajouter jusqu&apos;à 4 (self-tape, bande démo, présentation...). Max 500 Mo par vidéo.
+              <strong>Une vidéo minimum obligatoire.</strong> Vous pouvez en ajouter jusqu&apos;à 4 (self-tape, bande démo, présentation...).
             </p>
 
             <div className="space-y-2">
