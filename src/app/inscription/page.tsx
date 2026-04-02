@@ -108,10 +108,13 @@ export default function InscriptionPage() {
         }
         const { path, token, publicUrl } = await res.json();
 
-        // Step 2: Upload via Supabase JS client (handles protocol correctly)
+        // Step 2: Upload via Supabase JS client with explicit contentType
         const { error } = await supabase.storage
           .from("actor-photos")
-          .uploadToSignedUrl(path, token, file, { upsert: true });
+          .uploadToSignedUrl(path, token, file, {
+            contentType: file.type || "application/octet-stream",
+            upsert: true,
+          });
 
         if (error) {
           console.error(`Upload failed for ${file.name}:`, error);
