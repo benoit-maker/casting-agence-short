@@ -16,7 +16,7 @@ export default async function ActorPublicPage({
 
   const { data: actor } = await supabase
     .from("actors")
-    .select("id, display_name, sex, age_ranges, cities, photo_url, video_url")
+    .select("id, display_name, sex, age_ranges, cities, photo_url, video_url, video_urls")
     .eq("id", id)
     .eq("is_active", true)
     .single();
@@ -82,10 +82,15 @@ export default async function ActorPublicPage({
               ))}
             </div>
 
-            {/* Video */}
+            {/* Videos */}
             {actor.video_url && (
               <ActorVideoPlayer videoUrl={actor.video_url} actorName={displayName} />
             )}
+            {(actor.video_urls as string[] | null)?.filter((u: string) => u !== actor.video_url).map((url: string, i: number) => (
+              <div key={i} className="mt-2">
+                <ActorVideoPlayer videoUrl={url} actorName={displayName} label={`Vidéo ${i + 2}`} />
+              </div>
+            ))}
           </div>
         </div>
 

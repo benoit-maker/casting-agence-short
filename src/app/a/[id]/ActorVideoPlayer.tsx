@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Play } from "lucide-react";
 import { VideoModal } from "@/components/client/VideoModal";
 
-export function ActorVideoPlayer({ videoUrl, actorName }: { videoUrl: string; actorName: string }) {
+export function ActorVideoPlayer({ videoUrl, actorName, label }: { videoUrl: string; actorName: string; label?: string }) {
   const [showVideo, setShowVideo] = useState(false);
 
   return (
@@ -14,7 +14,7 @@ export function ActorVideoPlayer({ videoUrl, actorName }: { videoUrl: string; ac
         className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-btn border border-gray-200 text-sm font-medium text-gray-600 hover:border-primary hover:text-primary transition-colors cursor-pointer"
       >
         <Play className="w-5 h-5" />
-        Voir la bande démo
+        {label || "Voir la bande démo"}
       </button>
       <VideoModal
         open={showVideo}

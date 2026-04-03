@@ -12,8 +12,9 @@ interface VideoModalProps {
 
 export function VideoModal({ open, onClose, videoUrl, actorName }: VideoModalProps) {
   const embedUrl = getVideoEmbedUrl(videoUrl);
+  const isDirectVideo = !embedUrl && /\.(mp4|mov|webm)$/i.test(videoUrl) || videoUrl.includes("supabase.co/storage");
 
-  if (!embedUrl) return null;
+  if (!embedUrl && !isDirectVideo) return null;
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -22,13 +23,22 @@ export function VideoModal({ open, onClose, videoUrl, actorName }: VideoModalPro
           Bande démo — {actorName}
         </h3>
         <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-          <iframe
-            src={embedUrl}
-            title={`Bande démo de ${actorName}`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="absolute inset-0 w-full h-full rounded-btn"
-          />
+          {embedUrl ? (
+            <iframe
+              src={embedUrl}
+              title={`Bande démo de ${actorName}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full rounded-btn"
+            />
+          ) : (
+            <video
+              src={videoUrl}
+              controls
+              autoPlay
+              className="absolute inset-0 w-full h-full rounded-btn bg-black"
+            />
+          )}
         </div>
       </div>
     </Modal>
