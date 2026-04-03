@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
+import { DEFAULT_CITIES } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 
 export default function InscriptionPage() {
@@ -250,14 +251,28 @@ export default function InscriptionPage() {
               onChange={(e) => setDateOfBirth(e.target.value)}
             />
 
-            <Input
-              id="city"
-              label="Ville *"
-              placeholder="Bordeaux"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-dark mb-2">
+                Ville *
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {DEFAULT_CITIES.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCity(c)}
+                    className={cn(
+                      "px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer",
+                      city === c
+                        ? "bg-primary text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    )}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Sexe */}
             <div>
