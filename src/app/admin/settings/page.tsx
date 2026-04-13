@@ -53,7 +53,8 @@ export default function SettingsPage() {
       setNewPassword("");
       fetchProfiles();
     } else {
-      alert("Erreur lors de la création du compte");
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "Erreur lors de la création du compte");
     }
 
     setCreating(false);

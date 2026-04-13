@@ -13,7 +13,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
+  const admin = createAdminClient();
+
+  const { data: profile } = await admin
     .from("profiles")
     .select("role")
     .eq("id", user.id)
@@ -24,8 +26,6 @@ export async function POST(request: NextRequest) {
   }
 
   const { email, password, fullName } = await request.json();
-
-  const admin = createAdminClient();
 
   const { data: newUser, error } = await admin.auth.admin.createUser({
     email,
