@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Application not found" }, { status: 404 });
   }
 
-  const fullName = `${app.last_name} ${app.first_name}`;
+  const fullName = `${app.first_name} ${app.last_name}`;
 
   // Determine age range from date of birth
   let ageRanges: string[] = [];
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       display_name: generateDisplayName(fullName),
       sex: app.sex,
       age_ranges: ageRanges,
-      cities: [app.city],
+      cities: (app.cities && app.cities.length > 0) ? app.cities : (app.city ? [app.city] : []),
       phone: app.phone || null,
       photo_url: app.photo_urls?.[0] || null,
       video_url: app.video_urls?.[0] || null,

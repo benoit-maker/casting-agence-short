@@ -17,7 +17,7 @@ export default function InscriptionPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
-  const [city, setCity] = useState("");
+  const [cities, setCities] = useState<string[]>([]);
   const [sex, setSex] = useState<"Femme" | "Homme">("Femme");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -83,6 +83,10 @@ export default function InscriptionPage() {
     const items = videoItems as VideoItem[];
     if (items.length === 0) {
       alert("Vous devez ajouter au moins une vidéo ou un lien.");
+      return;
+    }
+    if (cities.length === 0) {
+      alert("Vous devez sélectionner au moins une ville.");
       return;
     }
 
@@ -156,7 +160,7 @@ export default function InscriptionPage() {
           first_name: firstName,
           last_name: lastName,
           date_of_birth: dateOfBirth || null,
-          city,
+          cities,
           sex,
           email: email || null,
           phone: phone || null,
@@ -253,24 +257,31 @@ export default function InscriptionPage() {
 
             <div>
               <label className="block text-sm font-medium text-dark mb-2">
-                Ville *
+                Ville(s) * <span className="text-gray-400 font-normal">(sélection multiple)</span>
               </label>
               <div className="flex flex-wrap gap-2">
-                {DEFAULT_CITIES.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCity(c)}
-                    className={cn(
-                      "px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer",
-                      city === c
-                        ? "bg-primary text-white"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    )}
-                  >
-                    {c}
-                  </button>
-                ))}
+                {DEFAULT_CITIES.map((c) => {
+                  const selected = cities.includes(c);
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() =>
+                        setCities((prev) =>
+                          prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
+                        )
+                      }
+                      className={cn(
+                        "px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer",
+                        selected
+                          ? "bg-primary text-white"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      )}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

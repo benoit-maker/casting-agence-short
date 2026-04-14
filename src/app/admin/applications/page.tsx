@@ -16,6 +16,7 @@ interface Application {
   last_name: string;
   date_of_birth: string | null;
   city: string;
+  cities: string[] | null;
   sex: "Femme" | "Homme";
   email: string | null;
   phone: string | null;
@@ -183,7 +184,7 @@ export default function ApplicationsPage() {
                       <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3.5 h-3.5" />
-                          {app.city}
+                          {(app.cities && app.cities.length > 0 ? app.cities : [app.city]).join(", ")}
                         </span>
                         <span className="flex items-center gap-1">
                           <Camera className="w-3.5 h-3.5" />
@@ -270,8 +271,10 @@ export default function ApplicationsPage() {
                             </div>
                           )}
                           <div className="flex justify-between">
-                            <span className="text-gray-500">Ville</span>
-                            <span className="font-medium text-dark">{app.city}</span>
+                            <span className="text-gray-500">Ville{app.cities && app.cities.length > 1 ? "s" : ""}</span>
+                            <span className="font-medium text-dark">
+                              {(app.cities && app.cities.length > 0 ? app.cities : [app.city]).join(", ")}
+                            </span>
                           </div>
                           {app.email && (
                             <div className="flex justify-between">

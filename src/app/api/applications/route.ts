@@ -4,9 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
-  const { first_name, last_name, date_of_birth, city, sex, email, phone, photo_urls, video_urls } = body;
+  const { first_name, last_name, date_of_birth, cities, sex, email, phone, photo_urls, video_urls } = body;
 
-  if (!first_name || !last_name || !city || !sex) {
+  if (!first_name || !last_name || !Array.isArray(cities) || cities.length === 0 || !sex) {
     return NextResponse.json({ error: "Champs obligatoires manquants" }, { status: 400 });
   }
 
@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
     first_name,
     last_name,
     date_of_birth: date_of_birth || null,
-    city,
+    city: cities[0],
+    cities,
     sex,
     email: email || null,
     phone: phone || null,
