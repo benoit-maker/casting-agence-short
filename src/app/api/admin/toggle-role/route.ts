@@ -1,36 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAuth } from "@/lib/auth";
+
+const VALID_ROLES = new Set(["super_admin", "project_manager"]);
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  const auth = await requireAuth("super_admin");
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const admin = createAdminClient();
-
-  // Verify caller is super_admin
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role !== "super_admin") {
-    return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Body invalide" }, { status: 400 });
   }
 
-  const { profileId, newRole } = await request.json();
+  const { profileId, newRole } = (body as {
+    profileId?: unknown;
+    newRole?: unknown;
+  }) ?? {};
 
-  if (!["super_admin", "project_manager"].includes(newRole)) {
+  if (typeof profileId !== "string" || typeof newRole !== "string") {
+    return NextResponse.json(
+      { error: "Paramètres invalides" },
+      { status: 400 }
+    );
+  }
+  if (!VALID_ROLES.has(newRole)) {
     return NextResponse.json({ error: "Rôle invalide" }, { status: 400 });
   }
 
+  const admin = createAdminClient();
   const { error } = await admin
     .from("profiles")
     .update({ role: newRole })

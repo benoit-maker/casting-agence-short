@@ -1,36 +1,72 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateSlug } from "@/lib/utils";
+import { requireAuth } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  // Verify the user is authenticated
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const { clientName, projectName, actorIds } = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Body invalide" }, { status: 400 });
+  }
 
-  if (!clientName || !actorIds?.length) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  const { clientName, projectName, actorIds } = (body as {
+    clientName?: unknown;
+    projectName?: unknown;
+    actorIds?: unknown;
+  }) ?? {};
+
+  if (
+    typeof clientName !== "string" ||
+    !clientName.trim() ||
+    clientName.length > 200
+  ) {
+    return NextResponse.json(
+      { error: "clientName invalide" },
+      { status: 400 }
+    );
+  }
+  if (
+    projectName !== undefined &&
+    projectName !== null &&
+    (typeof projectName !== "string" || projectName.length > 200)
+  ) {
+    return NextResponse.json(
+      { error: "projectName invalide" },
+      { status: 400 }
+    );
+  }
+  if (
+    !Array.isArray(actorIds) ||
+    actorIds.length === 0 ||
+    actorIds.length > 100 ||
+    actorIds.some((x) => typeof x !== "string")
+  ) {
+    return NextResponse.json(
+      { error: "actorIds invalide (1-100 strings)" },
+      { status: 400 }
+    );
   }
 
   const admin = createAdminClient();
   const slug = generateSlug();
 
-  // Create casting
   const { data: casting, error } = await admin
     .from("castings")
     .insert({
       slug,
-      client_name: clientName,
-      project_name: projectName || null,
-      project_manager_id: user.id,
+      client_name: clientName.trim(),
+      project_name:
+        typeof projectName === "string" && projectName.trim()
+          ? projectName.trim()
+          : null,
+      project_manager_id: auth.userId,
     })
     .select()
     .single();
@@ -42,8 +78,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Add actors to casting
-  const castingActors = actorIds.map((actorId: string, index: number) => ({
+  const castingActors = (actorIds as string[]).map((actorId, index) => ({
     casting_id: casting.id,
     actor_id: actorId,
     position: index,

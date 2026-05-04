@@ -1,33 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAuth } from "@/lib/auth";
+
+/**
+ * Vérifie que l'utilisateur est PM propriétaire ou super_admin pour ce casting.
+ */
+async function canManageCasting(
+  castingId: string,
+  userId: string,
+  role: "super_admin" | "project_manager"
+): Promise<boolean> {
+  if (role === "super_admin") return true;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("castings")
+    .select("project_manager_id")
+    .eq("id", castingId)
+    .single();
+  return data?.project_manager_id === userId;
+}
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   const { id } = await params;
-  const { actorIds } = await request.json();
 
-  if (!actorIds || !Array.isArray(actorIds)) {
+  if (!(await canManageCasting(id, auth.userId, auth.role))) {
+    return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Body invalide" }, { status: 400 });
+  }
+
+  const { actorIds } = (body as { actorIds?: unknown }) ?? {};
+
+  if (
+    !Array.isArray(actorIds) ||
+    actorIds.some((x) => typeof x !== "string") ||
+    actorIds.length > 100
+  ) {
     return NextResponse.json(
-      { error: "actorIds is required and must be an array" },
+      { error: "actorIds doit être un tableau de strings (max 100)" },
       { status: 400 }
     );
   }
 
   const admin = createAdminClient();
 
-  // Delete all existing casting_actors for this casting
   const { error: deleteError } = await admin
     .from("casting_actors")
     .delete()
@@ -40,9 +69,8 @@ export async function PATCH(
     );
   }
 
-  // Insert the new casting_actors with position ordering
   if (actorIds.length > 0) {
-    const castingActors = actorIds.map((actorId: string, index: number) => ({
+    const castingActors = (actorIds as string[]).map((actorId, index) => ({
       casting_id: id,
       actor_id: actorId,
       position: index,
@@ -60,7 +88,6 @@ export async function PATCH(
     }
   }
 
-  // Return the updated casting
   const { data: casting, error: fetchError } = await admin
     .from("castings")
     .select("*, casting_actors(actor_id, position)")
@@ -81,22 +108,21 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
   const { id } = await params;
+
+  if (!(await canManageCasting(id, auth.userId, auth.role))) {
+    return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
+  }
+
   const admin = createAdminClient();
 
-  // Delete casting_actors first (foreign key constraint)
   await admin.from("casting_actors").delete().eq("casting_id", id);
 
-  // Delete the casting
   const { error } = await admin.from("castings").delete().eq("id", id);
 
   if (error) {

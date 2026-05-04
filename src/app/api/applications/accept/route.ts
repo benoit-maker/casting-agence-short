@@ -1,24 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateDisplayName } from "@/lib/utils";
+import { requireAuth } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  // Verify authenticated
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAuth("super_admin");
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const { applicationId } = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Body invalide" }, { status: 400 });
+  }
+
+  const { applicationId } = (body as { applicationId?: unknown }) ?? {};
+  if (typeof applicationId !== "string") {
+    return NextResponse.json(
+      { error: "applicationId requis" },
+      { status: 400 }
+    );
+  }
 
   const admin = createAdminClient();
 
-  // Get the application
   const { data: app, error: appError } = await admin
     .from("applications")
     .select("*")
@@ -26,7 +33,10 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (appError || !app) {
-    return NextResponse.json({ error: "Application not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Application not found" },
+      { status: 404 }
+    );
   }
 
   const fullName = `${app.first_name} ${app.last_name}`;
@@ -44,7 +54,6 @@ export async function POST(request: NextRequest) {
     else ageRanges = ["55+"];
   }
 
-  // Create actor
   const { data: actor, error: actorError } = await admin
     .from("actors")
     .insert({
@@ -52,7 +61,12 @@ export async function POST(request: NextRequest) {
       display_name: generateDisplayName(fullName),
       sex: app.sex,
       age_ranges: ageRanges,
-      cities: (app.cities && app.cities.length > 0) ? app.cities : (app.city ? [app.city] : []),
+      cities:
+        app.cities && app.cities.length > 0
+          ? app.cities
+          : app.city
+            ? [app.city]
+            : [],
       phone: app.phone || null,
       photo_url: app.photo_urls?.[0] || null,
       video_url: app.video_urls?.[0] || null,
@@ -63,10 +77,12 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (actorError) {
-    return NextResponse.json({ error: "Failed to create actor" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create actor" },
+      { status: 500 }
+    );
   }
 
-  // Mark application as accepted
   await admin
     .from("applications")
     .update({ status: "accepted" })
