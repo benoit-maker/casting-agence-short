@@ -5,12 +5,25 @@ import { DEFAULT_CITIES } from "@/lib/types";
 
 const NAME_MAX = 100;
 const STR_MAX = 200;
+const URL_MAX = 500;
 const MAX_PHOTOS = 5;
 const MAX_VIDEOS = 3;
 const ALLOWED_CITIES = new Set<string>(DEFAULT_CITIES as readonly string[]);
+const ALLOWED_AVAILABILITY = new Set(["flexible", "weekdays", "weekends"]);
+const ALLOWED_MICRO_STATUS = new Set(["yes", "no", "can_create"]);
 
 function isValidString(v: unknown, max = STR_MAX): v is string {
   return typeof v === "string" && v.length > 0 && v.length <= max;
+}
+
+function isValidPortfolioLink(v: unknown): boolean {
+  if (typeof v !== "string" || v.length > URL_MAX) return false;
+  try {
+    const u = new URL(v);
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -31,6 +44,10 @@ export async function POST(request: NextRequest) {
     phone,
     photo_urls,
     video_urls,
+    availability,
+    accepts_rate,
+    portfolio_link,
+    micro_entrepreneur_status,
   } = (body as Record<string, unknown>) ?? {};
 
   if (!isValidString(first_name, NAME_MAX)) {
@@ -103,6 +120,47 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Nouveaux champs
+  if (
+    !Array.isArray(availability) ||
+    availability.length === 0 ||
+    availability.length > 3 ||
+    availability.some(
+      (a) => typeof a !== "string" || !ALLOWED_AVAILABILITY.has(a)
+    )
+  ) {
+    return NextResponse.json(
+      { error: "Disponibilité invalide" },
+      { status: 400 }
+    );
+  }
+  if (typeof accepts_rate !== "boolean") {
+    return NextResponse.json(
+      { error: "accepts_rate doit être un booléen" },
+      { status: 400 }
+    );
+  }
+  if (
+    portfolio_link !== null &&
+    portfolio_link !== undefined &&
+    portfolio_link !== "" &&
+    !isValidPortfolioLink(portfolio_link)
+  ) {
+    return NextResponse.json(
+      { error: "Lien portfolio invalide" },
+      { status: 400 }
+    );
+  }
+  if (
+    typeof micro_entrepreneur_status !== "string" ||
+    !ALLOWED_MICRO_STATUS.has(micro_entrepreneur_status)
+  ) {
+    return NextResponse.json(
+      { error: "Statut micro-entrepreneur invalide" },
+      { status: 400 }
+    );
+  }
+
   const admin = createAdminClient();
 
   const { error } = await admin.from("applications").insert({
@@ -116,6 +174,10 @@ export async function POST(request: NextRequest) {
     phone: phone || null,
     photo_urls: photo_urls || [],
     video_urls: video_urls || [],
+    availability,
+    accepts_rate,
+    portfolio_link: portfolio_link || null,
+    micro_entrepreneur_status,
   });
 
   if (error) {

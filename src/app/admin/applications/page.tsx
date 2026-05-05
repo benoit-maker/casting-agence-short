@@ -9,6 +9,12 @@ import { Card } from "@/components/ui/Card";
 import { Tag } from "@/components/ui/Tag";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
+import {
+  AVAILABILITY_LABELS,
+  MICRO_ENTREPRENEUR_LABELS,
+  type Availability,
+  type MicroEntrepreneurStatus,
+} from "@/lib/types";
 
 interface Application {
   id: string;
@@ -24,6 +30,10 @@ interface Application {
   video_urls: string[];
   status: "pending" | "accepted" | "rejected";
   created_at: string;
+  availability: Availability[] | null;
+  accepts_rate: boolean | null;
+  portfolio_link: string | null;
+  micro_entrepreneur_status: MicroEntrepreneurStatus | null;
 }
 
 export default function ApplicationsPage() {
@@ -300,6 +310,50 @@ export default function ApplicationsPage() {
                               })}
                             </span>
                           </div>
+                          {app.availability && app.availability.length > 0 && (
+                            <div className="flex justify-between gap-4">
+                              <span className="text-gray-500">Disponibilité</span>
+                              <span className="font-medium text-dark text-right">
+                                {app.availability
+                                  .map((a) => AVAILABILITY_LABELS[a])
+                                  .join(", ")}
+                              </span>
+                            </div>
+                          )}
+                          {app.accepts_rate !== null && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Tarif 250€/jour</span>
+                              <span
+                                className={cn(
+                                  "font-medium",
+                                  app.accepts_rate ? "text-success" : "text-red-500"
+                                )}
+                              >
+                                {app.accepts_rate ? "Accepté" : "Refusé"}
+                              </span>
+                            </div>
+                          )}
+                          {app.micro_entrepreneur_status && (
+                            <div className="flex justify-between gap-4">
+                              <span className="text-gray-500">Micro-entrepreneur</span>
+                              <span className="font-medium text-dark text-right">
+                                {MICRO_ENTREPRENEUR_LABELS[app.micro_entrepreneur_status]}
+                              </span>
+                            </div>
+                          )}
+                          {app.portfolio_link && (
+                            <div className="flex justify-between gap-4">
+                              <span className="text-gray-500">Portfolio</span>
+                              <a
+                                href={app.portfolio_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-medium text-primary hover:underline truncate max-w-[200px]"
+                              >
+                                {app.portfolio_link}
+                              </a>
+                            </div>
+                          )}
                         </div>
                       </div>
 

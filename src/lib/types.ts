@@ -8,6 +8,21 @@ export interface Profile {
   created_at: string;
 }
 
+export type Availability = "flexible" | "weekdays" | "weekends";
+export type MicroEntrepreneurStatus = "yes" | "no" | "can_create";
+
+export const AVAILABILITY_LABELS: Record<Availability, string> = {
+  flexible: "Flexible / À mon compte",
+  weekdays: "Certains jours de semaine seulement",
+  weekends: "Uniquement le week-end",
+};
+
+export const MICRO_ENTREPRENEUR_LABELS: Record<MicroEntrepreneurStatus, string> = {
+  yes: "Oui",
+  no: "Non",
+  can_create: "Non, mais je peux le faire si besoin",
+};
+
 export interface Actor {
   id: string;
   name: string;
@@ -24,6 +39,10 @@ export interface Actor {
   notes: string;
   notion_id: string | null;
   is_active: boolean;
+  availability: Availability[];
+  accepts_rate: boolean | null;
+  portfolio_link: string | null;
+  micro_entrepreneur_status: MicroEntrepreneurStatus | null;
   created_at: string;
   updated_at: string;
 }

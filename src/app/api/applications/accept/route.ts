@@ -71,6 +71,10 @@ export async function POST(request: NextRequest) {
       photo_url: app.photo_urls?.[0] || null,
       video_url: app.video_urls?.[0] || null,
       video_urls: app.video_urls || [],
+      availability: app.availability || [],
+      accepts_rate: app.accepts_rate ?? null,
+      portfolio_link: app.portfolio_link || null,
+      micro_entrepreneur_status: app.micro_entrepreneur_status || null,
       is_active: true,
     })
     .select()
