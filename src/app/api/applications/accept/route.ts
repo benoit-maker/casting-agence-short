@@ -4,7 +4,7 @@ import { generateDisplayName } from "@/lib/utils";
 import { requireAuth } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth("super_admin");
+  const auth = await requireAuth();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -81,8 +81,9 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (actorError) {
+    console.error("[accept] actor insert error:", actorError.message);
     return NextResponse.json(
-      { error: "Failed to create actor" },
+      { error: actorError.message },
       { status: 500 }
     );
   }

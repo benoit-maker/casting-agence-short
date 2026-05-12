@@ -42,6 +42,7 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "accepted" | "rejected" | "all">("pending");
   const [processing, setProcessing] = useState<string | null>(null);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
   const [mediaModal, setMediaModal] = useState<{ type: "photos" | "video"; urls: string[]; name: string; index: number } | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -60,8 +61,8 @@ export default function ApplicationsPage() {
 
   async function handleAccept(app: Application) {
     setProcessing(app.id);
+    setAcceptError(null);
 
-    // Create actor from application
     const res = await fetch("/api/applications/accept", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -72,6 +73,9 @@ export default function ApplicationsPage() {
       setApplications((prev) =>
         prev.map((a) => (a.id === app.id ? { ...a, status: "accepted" as const } : a))
       );
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setAcceptError(body.error || "Erreur lors de l'acceptation. Vérifiez la console serveur.");
     }
     setProcessing(null);
   }
@@ -111,6 +115,20 @@ export default function ApplicationsPage() {
           )}
         </div>
       </div>
+
+      {/* Erreur acceptation */}
+      {acceptError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-btn text-sm text-red-600 flex items-center justify-between">
+          <span>{acceptError}</span>
+          <button
+            type="button"
+            onClick={() => setAcceptError(null)}
+            className="ml-4 text-red-400 hover:text-red-600 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Filtres */}
       <div className="flex gap-2 mb-6">

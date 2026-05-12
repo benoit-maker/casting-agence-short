@@ -3,8 +3,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Resend } from "resend";
 import crypto from "crypto";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 /**
  * HMAC token to ensure /api/notify can only be called by clients that loaded
  * the public casting page (which gets the token at SSR time).
@@ -23,6 +21,7 @@ export function generateNotifyToken(slug: string, actorId: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   try {
     const body = await request.json();
     const { castingId, actorId, slug, isChange, token } = (body ?? {}) as {
