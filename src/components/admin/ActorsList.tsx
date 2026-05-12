@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Video, Trash2 } from "lucide-react";
+import { Search, Video, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Tag } from "@/components/ui/Tag";
 import { CopyActorLinkButton } from "@/components/admin/CopyActorLinkButton";
@@ -18,6 +18,7 @@ export function ActorsList({ actors }: ActorsListProps) {
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -33,14 +34,28 @@ export function ActorsList({ actors }: ActorsListProps) {
 
   async function handleDelete(actorId: string) {
     setDeleting(actorId);
-    await fetch(`/api/actors/${actorId}`, { method: "DELETE" });
+    setDeleteError(null);
+    const res = await fetch(`/api/actors/${actorId}`, { method: "DELETE" });
     setConfirmDelete(null);
     setDeleting(null);
-    router.refresh();
+    if (res.ok) {
+      router.refresh();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setDeleteError(body.error || "Erreur lors de la suppression.");
+    }
   }
 
   return (
     <>
+      {deleteError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-btn text-sm text-red-600 flex items-center justify-between">
+          <span>{deleteError}</span>
+          <button type="button" onClick={() => setDeleteError(null)} className="ml-4 text-red-400 hover:text-red-600 cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       {/* Barre de recherche */}
       <div className="relative mb-6">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

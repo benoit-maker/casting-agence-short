@@ -27,7 +27,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth("super_admin");
+  const auth = await requireAuth();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -84,7 +84,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth("super_admin");
+  const auth = await requireAuth();
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -92,12 +92,14 @@ export async function DELETE(
   const { id } = await params;
   const admin = createAdminClient();
 
-  // Remove actor from any castings first
+  // Détacher l'acteur de toutes les tables qui le référencent
   await admin.from("casting_actors").delete().eq("actor_id", id);
+  await admin.from("castings").update({ selected_actor_id: null, status: "pending" }).eq("selected_actor_id", id);
 
   const { error } = await admin.from("actors").delete().eq("id", id);
 
   if (error) {
+    console.error("[delete actor] error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
