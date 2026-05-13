@@ -32,7 +32,8 @@ export default async function StatsPage() {
 
   const allProfiles = SEXES.flatMap((s) =>
     AGE_RANGES.map((range) => ({
-      label: `${s} · ${range}`,
+      sex: s,
+      ageRange: range,
       count: actors.filter((a) => a.sex === s && a.age_ranges.includes(range)).length,
     }))
   );

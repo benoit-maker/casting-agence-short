@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/Card";
+import { Tag } from "@/components/ui/Tag";
 import { GrowthChart } from "@/components/admin/GrowthChart";
 
 interface StatEntry {
@@ -8,7 +9,8 @@ interface StatEntry {
 }
 
 interface ProfileEntry {
-  label: string;
+  sex: "Femme" | "Homme";
+  ageRange: string;
   count: number;
 }
 
@@ -54,17 +56,27 @@ function StatTable({ rows, note }: { rows: StatEntry[]; note?: string }) {
   );
 }
 
-function ProfileList({ rows }: { rows: ProfileEntry[] }) {
+function ProfileList({ rows, variant }: { rows: ProfileEntry[]; variant: "top" | "rare" }) {
+  const badgeClass =
+    variant === "top"
+      ? "bg-primary-light text-primary"
+      : "bg-orange-100 text-orange-600";
+
   return (
     <ol className="space-y-3">
       {rows.map((row, i) => (
-        <li key={row.label} className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-gray-300 w-4 tabular-nums">{i + 1}</span>
-            <span className="text-sm text-dark">{row.label}</span>
+        <li key={`${row.sex}-${row.ageRange}`} className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span
+              className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold flex-shrink-0 ${badgeClass}`}
+            >
+              {i + 1}
+            </span>
+            <Tag variant={row.sex === "Femme" ? "female" : "male"}>{row.sex}</Tag>
+            <span className="text-sm text-dark truncate">{row.ageRange}</span>
           </div>
           <span className="text-sm font-semibold text-dark tabular-nums flex-shrink-0">
-            {row.count} acteur{row.count !== 1 ? "s" : ""}
+            {row.count} <span className="text-xs font-normal text-gray-400">acteur{row.count !== 1 ? "s" : ""}</span>
           </span>
         </li>
       ))}
@@ -125,19 +137,20 @@ export function StatsView({ total, active, sex, ageRanges, topCities, topProfile
           <StatTable rows={topCities} note="Un acteur peut être rattaché à plusieurs villes." />
         </Card>
 
+        {/* Profils représentés + rares — une seule Card, deux colonnes */}
         <Card className="p-6">
-          <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-5">
-            Top 3 profils les plus représentés
-          </h2>
-          <ProfileList rows={topProfiles} />
-        </Card>
-
-        <Card className="p-6">
-          <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-5">
-            Top 3 profils les plus rares
-          </h2>
-          <ProfileList rows={rareProfiles} />
-          <p className="text-xs text-gray-400 mt-4 italic">Profils à recruter en priorité.</p>
+          <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-5">Profils</h2>
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <p className="text-xs font-medium text-primary mb-3">Les plus représentés</p>
+              <ProfileList rows={topProfiles} variant="top" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-orange-500 mb-3">Les plus rares</p>
+              <ProfileList rows={rareProfiles} variant="rare" />
+              <p className="text-xs text-gray-400 mt-4 italic">À recruter en priorité.</p>
+            </div>
+          </div>
         </Card>
       </div>
     </div>
