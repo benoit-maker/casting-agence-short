@@ -1,0 +1,59 @@
+import { createAdminClient } from "@/lib/supabase/admin";
+import { StatsView } from "@/components/admin/StatsView";
+import type { Actor, Availability } from "@/lib/types";
+
+const AGE_RANGES = ["18-25 ans", "25-40 ans", "40-55 ans", "55+"];
+
+const AVAILABILITY_KEYS: { key: Availability; label: string }[] = [
+  { key: "flexible", label: "Flexible / À mon compte" },
+  { key: "weekdays", label: "Certains jours de semaine" },
+  { key: "weekends", label: "Uniquement le week-end" },
+];
+
+export default async function StatsPage() {
+  const supabase = createAdminClient();
+  const { data } = await supabase.from("actors").select("*");
+  const actors = (data as Actor[]) || [];
+
+  const total = actors.length;
+  const active = actors.filter((a) => a.is_active).length;
+
+  const sex = [
+    { label: "Femmes", count: actors.filter((a) => a.sex === "Femme").length },
+    { label: "Hommes", count: actors.filter((a) => a.sex === "Homme").length },
+  ].map((d) => ({ ...d, pct: total ? Math.round((d.count / total) * 100) : 0 }));
+
+  const ageRanges = AGE_RANGES.map((range) => {
+    const count = actors.filter((a) => a.age_ranges.includes(range)).length;
+    return { label: range, count, pct: total ? Math.round((count / total) * 100) : 0 };
+  });
+
+  const cityCounts: Record<string, number> = {};
+  actors.forEach((a) => a.cities.forEach((c) => { cityCounts[c] = (cityCounts[c] || 0) + 1; }));
+  const topCities = Object.entries(cityCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([label, count]) => ({ label, count, pct: total ? Math.round((count / total) * 100) : 0 }));
+
+  const availability = AVAILABILITY_KEYS.map(({ key, label }) => {
+    const count = actors.filter((a) => a.availability?.includes(key)).length;
+    return { label, count, pct: total ? Math.round((count / total) * 100) : 0 };
+  });
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-heading font-semibold text-dark">Statistiques</h1>
+        <p className="text-sm text-gray-400 mt-1">Données démographiques des acteurs</p>
+      </div>
+      <StatsView
+        total={total}
+        active={active}
+        sex={sex}
+        ageRanges={ageRanges}
+        topCities={topCities}
+        availability={availability}
+      />
+    </div>
+  );
+}

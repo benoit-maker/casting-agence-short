@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ClipboardList, Users, UserPlus, Settings, LogOut } from "lucide-react";
+import { ClipboardList, Users, UserPlus, BarChart2, Settings, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ const navItems = [
   { href: "/admin", label: "Mes castings", icon: ClipboardList },
   { href: "/admin/actors", label: "Acteurs", icon: Users },
   { href: "/admin/applications", label: "Candidatures", icon: UserPlus },
+  { href: "/admin/stats", label: "Statistiques", icon: BarChart2 },
 ];
 
 export function Sidebar({ profile }: SidebarProps) {
