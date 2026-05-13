@@ -140,12 +140,12 @@ export function StatsView({ total, active, sex, ageRanges, topCities, topProfile
         {/* Profils représentés + rares — une seule Card, deux colonnes */}
         <Card className="p-6">
           <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-5">Profils</h2>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-6">
             <div>
               <p className="text-xs font-medium text-primary mb-3">Les plus représentés</p>
               <ProfileList rows={topProfiles} variant="top" />
             </div>
-            <div>
+            <div className="border-t border-gray-200 pt-6">
               <p className="text-xs font-medium text-orange-500 mb-3">Les plus rares</p>
               <ProfileList rows={rareProfiles} variant="rare" />
               <p className="text-xs text-gray-400 mt-4 italic">À recruter en priorité.</p>
