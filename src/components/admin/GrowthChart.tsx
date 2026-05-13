@@ -33,7 +33,7 @@ export function GrowthChart({ data }: GrowthChartProps) {
         />
         <Tooltip
           contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: 13 }}
-          formatter={(value: number) => [value, "Acteurs"]}
+          formatter={(value) => [value ?? 0, "Acteurs"]}
         />
         <Line
           type="monotone"
