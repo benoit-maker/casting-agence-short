@@ -1,14 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { StatsView } from "@/components/admin/StatsView";
-import type { Actor, Availability } from "@/lib/types";
+import type { Actor } from "@/lib/types";
 
 const AGE_RANGES = ["18-25 ans", "25-40 ans", "40-55 ans", "55+"];
-
-const AVAILABILITY_KEYS: { key: Availability; label: string }[] = [
-  { key: "flexible", label: "Flexible / À mon compte" },
-  { key: "weekdays", label: "Certains jours de semaine" },
-  { key: "weekends", label: "Uniquement le week-end" },
-];
+const SEXES = ["Femme", "Homme"] as const;
 
 export default async function StatsPage() {
   const supabase = createAdminClient();
@@ -35,10 +30,14 @@ export default async function StatsPage() {
     .slice(0, 10)
     .map(([label, count]) => ({ label, count, pct: total ? Math.round((count / total) * 100) : 0 }));
 
-  const availability = AVAILABILITY_KEYS.map(({ key, label }) => {
-    const count = actors.filter((a) => a.availability?.includes(key)).length;
-    return { label, count, pct: total ? Math.round((count / total) * 100) : 0 };
-  });
+  const allProfiles = SEXES.flatMap((s) =>
+    AGE_RANGES.map((range) => ({
+      label: `${s} · ${range}`,
+      count: actors.filter((a) => a.sex === s && a.age_ranges.includes(range)).length,
+    }))
+  );
+  const topProfiles = [...allProfiles].sort((a, b) => b.count - a.count).slice(0, 3);
+  const rareProfiles = [...allProfiles].sort((a, b) => a.count - b.count).slice(0, 3);
 
   const monthCounts: Record<string, number> = {};
   actors.forEach((a) => {
@@ -71,7 +70,8 @@ export default async function StatsPage() {
         sex={sex}
         ageRanges={ageRanges}
         topCities={topCities}
-        availability={availability}
+        topProfiles={topProfiles}
+        rareProfiles={rareProfiles}
         growthData={growthData}
       />
     </div>

@@ -7,13 +7,19 @@ interface StatEntry {
   pct: number;
 }
 
+interface ProfileEntry {
+  label: string;
+  count: number;
+}
+
 interface StatsViewProps {
   total: number;
   active: number;
   sex: StatEntry[];
   ageRanges: StatEntry[];
   topCities: StatEntry[];
-  availability: StatEntry[];
+  topProfiles: ProfileEntry[];
+  rareProfiles: ProfileEntry[];
   growthData: { month: string; total: number }[];
 }
 
@@ -48,7 +54,25 @@ function StatTable({ rows, note }: { rows: StatEntry[]; note?: string }) {
   );
 }
 
-export function StatsView({ total, active, sex, ageRanges, topCities, availability, growthData }: StatsViewProps) {
+function ProfileList({ rows }: { rows: ProfileEntry[] }) {
+  return (
+    <ol className="space-y-3">
+      {rows.map((row, i) => (
+        <li key={row.label} className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-gray-300 w-4 tabular-nums">{i + 1}</span>
+            <span className="text-sm text-dark">{row.label}</span>
+          </div>
+          <span className="text-sm font-semibold text-dark tabular-nums flex-shrink-0">
+            {row.count} acteur{row.count !== 1 ? "s" : ""}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export function StatsView({ total, active, sex, ageRanges, topCities, topProfiles, rareProfiles, growthData }: StatsViewProps) {
   const inactive = total - active;
   const activityRate = total ? Math.round((active / total) * 100) : 0;
 
@@ -102,8 +126,18 @@ export function StatsView({ total, active, sex, ageRanges, topCities, availabili
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-5">Répartition par disponibilité</h2>
-          <StatTable rows={availability} note="Un acteur peut avoir plusieurs disponibilités." />
+          <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-5">
+            Top 3 profils les plus représentés
+          </h2>
+          <ProfileList rows={topProfiles} />
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-5">
+            Top 3 profils les plus rares
+          </h2>
+          <ProfileList rows={rareProfiles} />
+          <p className="text-xs text-gray-400 mt-4 italic">Profils à recruter en priorité.</p>
         </Card>
       </div>
     </div>
