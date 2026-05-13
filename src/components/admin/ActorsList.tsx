@@ -16,20 +16,32 @@ interface ActorsListProps {
 
 export function ActorsList({ actors }: ActorsListProps) {
   const [search, setSearch] = useState("");
+  const [filterSex, setFilterSex] = useState<"Femme" | "Homme" | null>(null);
+  const [filterAge, setFilterAge] = useState<string[]>([]);
+  const [filterCity, setFilterCity] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
+  const allCities = Array.from(new Set(actors.flatMap((a) => a.cities))).sort();
+
+  const hasActiveFilters = filterSex !== null || filterAge.length > 0 || filterCity !== null;
+
   const filtered = actors.filter((actor) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      actor.name.toLowerCase().includes(q) ||
-      (actor.display_name && actor.display_name.toLowerCase().includes(q)) ||
-      actor.cities.some((c) => c.toLowerCase().includes(q))
-    );
+    if (filterSex && actor.sex !== filterSex) return false;
+    if (filterAge.length > 0 && !filterAge.some((r) => actor.age_ranges.includes(r))) return false;
+    if (filterCity && !actor.cities.includes(filterCity)) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        actor.name.toLowerCase().includes(q) ||
+        (actor.display_name && actor.display_name.toLowerCase().includes(q)) ||
+        actor.cities.some((c) => c.toLowerCase().includes(q))
+      );
+    }
+    return true;
   });
 
   async function handleDelete(actorId: string) {
@@ -56,6 +68,78 @@ export function ActorsList({ actors }: ActorsListProps) {
           </button>
         </div>
       )}
+      {/* Filtres */}
+      <div className="flex flex-wrap gap-4 mb-4 items-end">
+        {/* Sexe */}
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Sexe</span>
+          <div className="flex gap-1">
+            {(["Femme", "Homme"] as const).map((sex) => (
+              <button
+                key={sex}
+                type="button"
+                onClick={() => setFilterSex(filterSex === sex ? null : sex)}
+                className={`px-3 py-1.5 rounded-btn text-sm font-medium transition-colors cursor-pointer ${
+                  filterSex === sex
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {sex}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Âge */}
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Âge</span>
+          <div className="flex gap-1">
+            {["18-25 ans", "25-40 ans", "40-55 ans", "55+"].map((range) => (
+              <button
+                key={range}
+                type="button"
+                onClick={() => setFilterAge(filterAge.includes(range) ? filterAge.filter((r) => r !== range) : [...filterAge, range])}
+                className={`px-3 py-1.5 rounded-btn text-sm font-medium transition-colors cursor-pointer ${
+                  filterAge.includes(range)
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Ville */}
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Ville</span>
+          <select
+            value={filterCity ?? ""}
+            onChange={(e) => setFilterCity(e.target.value || null)}
+            className="px-3 py-1.5 rounded-btn border border-gray-200 bg-white text-sm text-dark focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all cursor-pointer"
+          >
+            <option value="">Toutes</option>
+            {allCities.map((city) => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Réinitialiser */}
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={() => { setFilterSex(null); setFilterAge([]); setFilterCity(null); }}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-400 hover:text-gray-600 cursor-pointer self-end"
+          >
+            <X className="w-3.5 h-3.5" />
+            Réinitialiser
+          </button>
+        )}
+      </div>
+
       {/* Barre de recherche */}
       <div className="relative mb-6">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -183,7 +267,7 @@ export function ActorsList({ actors }: ActorsListProps) {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
-                  {search ? "Aucun acteur trouvé pour cette recherche." : "Aucun acteur pour le moment."}
+                  {search || hasActiveFilters ? "Aucun acteur trouvé pour ces critères." : "Aucun acteur pour le moment."}
                 </td>
               </tr>
             )}
