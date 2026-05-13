@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Check, X, Film, Camera, Calendar, MapPin, Clock, Play, ExternalLink } from "lucide-react";
+import { Check, X, Film, Camera, Calendar, MapPin, Clock, Play, ExternalLink, Copy, CheckCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -100,6 +100,16 @@ export default function ApplicationsPage() {
       : applications.filter((a) => a.status === filter);
 
   const pendingCount = applications.filter((a) => a.status === "pending").length;
+  const [copied, setCopied] = useState(false);
+
+  function copyApplicationLink() {
+    const base = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const url = `${base}/inscription`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   return (
     <div>
@@ -114,6 +124,28 @@ export default function ApplicationsPage() {
             </p>
           )}
         </div>
+        <button
+          type="button"
+          onClick={copyApplicationLink}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer",
+            copied
+              ? "bg-green-100 text-green-700"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          )}
+        >
+          {copied ? (
+            <>
+              <CheckCheck className="w-4 h-4" />
+              Lien copié !
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4" />
+              Copier le lien de candidature
+            </>
+          )}
+        </button>
       </div>
 
       {/* Erreur acceptation */}
@@ -173,9 +205,11 @@ export default function ApplicationsPage() {
             return (
               <Card key={app.id} className="overflow-hidden">
                 {/* En-tête cliquable */}
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setExpandedId(isExpanded ? null : app.id)}
+                  onKeyDown={(e) => e.key === "Enter" && setExpandedId(isExpanded ? null : app.id)}
                   className="w-full p-6 text-left cursor-pointer hover:bg-gray-50/50 transition-colors"
                 >
                   <div className="flex gap-5 items-center">
@@ -269,7 +303,7 @@ export default function ApplicationsPage() {
                       )}
                     </div>
                   </div>
-                </button>
+                </div>
 
                 {/* Détail déplié */}
                 {isExpanded && (
