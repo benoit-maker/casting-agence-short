@@ -40,6 +40,25 @@ export default async function StatsPage() {
     return { label, count, pct: total ? Math.round((count / total) * 100) : 0 };
   });
 
+  const monthCounts: Record<string, number> = {};
+  actors.forEach((a) => {
+    const date = new Date(a.created_at);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    monthCounts[key] = (monthCounts[key] || 0) + 1;
+  });
+  let cumulative = 0;
+  const growthData = Object.entries(monthCounts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, count]) => {
+      cumulative += count;
+      const [year, month] = key.split("-");
+      const label = new Date(Number(year), Number(month) - 1).toLocaleDateString("fr-FR", {
+        month: "short",
+        year: "numeric",
+      });
+      return { month: label, total: cumulative };
+    });
+
   return (
     <div>
       <div className="mb-8">
@@ -53,6 +72,7 @@ export default async function StatsPage() {
         ageRanges={ageRanges}
         topCities={topCities}
         availability={availability}
+        growthData={growthData}
       />
     </div>
   );

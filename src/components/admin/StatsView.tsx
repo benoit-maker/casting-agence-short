@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/Card";
+import { GrowthChart } from "@/components/admin/GrowthChart";
 
 interface StatEntry {
   label: string;
@@ -13,6 +14,7 @@ interface StatsViewProps {
   ageRanges: StatEntry[];
   topCities: StatEntry[];
   availability: StatEntry[];
+  growthData: { month: string; total: number }[];
 }
 
 function ProgressBar({ pct }: { pct: number }) {
@@ -46,7 +48,7 @@ function StatTable({ rows, note }: { rows: StatEntry[]; note?: string }) {
   );
 }
 
-export function StatsView({ total, active, sex, ageRanges, topCities, availability }: StatsViewProps) {
+export function StatsView({ total, active, sex, ageRanges, topCities, availability, growthData }: StatsViewProps) {
   const inactive = total - active;
   const activityRate = total ? Math.round((active / total) * 100) : 0;
 
@@ -71,6 +73,16 @@ export function StatsView({ total, active, sex, ageRanges, topCities, availabili
           <p className="text-4xl font-heading font-bold text-dark">{activityRate}%</p>
         </Card>
       </div>
+
+      {/* Courbe de croissance */}
+      {growthData.length > 1 && (
+        <Card className="p-6">
+          <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-6">
+            Évolution du nombre d'acteurs
+          </h2>
+          <GrowthChart data={growthData} />
+        </Card>
+      )}
 
       {/* Tableaux */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
