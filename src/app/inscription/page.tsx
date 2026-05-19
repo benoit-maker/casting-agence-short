@@ -60,7 +60,7 @@ export default function InscriptionPage() {
         file,
         preview: URL.createObjectURL(file),
       }));
-    setPhotos((prev) => [...prev, ...newPhotos].slice(0, 5));
+    setPhotos((prev) => [...prev, ...newPhotos].slice(0, 1));
   }
 
   function handleVideoFileAdd(files: FileList | null) {
@@ -473,8 +473,7 @@ export default function InscriptionPage() {
               Photos
             </h2>
             <p className="text-sm text-gray-400">
-              Ajoutez jusqu&apos;à 5 photos (portrait de face, profil, plan
-              large...).
+              Ajoutez une photo de profil (portrait de face de préférence).
             </p>
 
             <div className="flex flex-wrap gap-3">
@@ -496,7 +495,7 @@ export default function InscriptionPage() {
                 </div>
               ))}
 
-              {photos.length < 5 && (
+              {photos.length < 1 && (
                 <button
                   type="button"
                   onClick={() => photoInputRef.current?.click()}
@@ -511,7 +510,6 @@ export default function InscriptionPage() {
               ref={photoInputRef}
               type="file"
               accept="image/jpeg,image/png,image/webp"
-              multiple
               className="hidden"
               onChange={(e) => handlePhotoAdd(e.target.files)}
             />
