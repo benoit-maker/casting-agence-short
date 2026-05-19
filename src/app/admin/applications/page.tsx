@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Check, X, Film, Camera, Calendar, MapPin, Clock, Play, ExternalLink, Copy, CheckCheck } from "lucide-react";
+import { Check, X, Film, Camera, MapPin, Clock, Play, ExternalLink, Copy, CheckCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -15,6 +15,39 @@ import {
   type Availability,
   type MicroEntrepreneurStatus,
 } from "@/lib/types";
+
+type VideoType = "youtube" | "drive" | "file";
+
+function detectVideoType(url: string): VideoType {
+  if (/youtube\.com|youtu\.be/.test(url)) return "youtube";
+  if (/drive\.google\.com/.test(url)) return "drive";
+  return "file";
+}
+
+function getYouTubeEmbedUrl(url: string): string {
+  const short = url.match(/youtu\.be\/([^?&]+)/);
+  if (short) return `https://www.youtube.com/embed/${short[1]}`;
+  const shorts = url.match(/youtube\.com\/shorts\/([^?&]+)/);
+  if (shorts) return `https://www.youtube.com/embed/${shorts[1]}`;
+  const watch = url.match(/[?&]v=([^?&]+)/);
+  if (watch) return `https://www.youtube.com/embed/${watch[1]}`;
+  return url;
+}
+
+function getDriveEmbedUrl(url: string): string {
+  const file = url.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+  if (file) return `https://drive.google.com/file/d/${file[1]}/preview`;
+  const open = url.match(/[?&]id=([^&]+)/);
+  if (open) return `https://drive.google.com/file/d/${open[1]}/preview`;
+  return url;
+}
+
+function VideoLabel({ url }: { url: string }) {
+  const type = detectVideoType(url);
+  if (type === "youtube") return <span className="text-xs text-red-500 font-medium">YouTube</span>;
+  if (type === "drive") return <span className="text-xs text-blue-500 font-medium">Drive</span>;
+  return <span className="text-xs text-gray-400">Fichier</span>;
+}
 
 interface Application {
   id: string;
@@ -456,7 +489,7 @@ export default function ApplicationsPage() {
                               </div>
                               <div>
                                 <p className="text-sm font-medium text-dark">Vidéo {i + 1}</p>
-                                <p className="text-xs text-gray-400">Cliquer pour lire</p>
+                                <VideoLabel url={url} />
                               </div>
                             </button>
                           ))}
@@ -493,14 +526,38 @@ export default function ApplicationsPage() {
                   />
                 ))}
               </div>
-            ) : (
-              <video
-                src={mediaModal.urls[0]}
-                controls
-                autoPlay
-                className="w-full rounded-btn max-h-[70vh]"
-              />
-            )}
+            ) : (() => {
+              const url = mediaModal.urls[0];
+              const type = detectVideoType(url);
+              if (type === "youtube") {
+                return (
+                  <iframe
+                    src={getYouTubeEmbedUrl(url)}
+                    allow="autoplay; encrypted-media; fullscreen"
+                    allowFullScreen
+                    className="w-full aspect-video rounded-btn"
+                  />
+                );
+              }
+              if (type === "drive") {
+                return (
+                  <iframe
+                    src={getDriveEmbedUrl(url)}
+                    allow="autoplay"
+                    allowFullScreen
+                    className="w-full aspect-video rounded-btn"
+                  />
+                );
+              }
+              return (
+                <video
+                  src={url}
+                  controls
+                  autoPlay
+                  className="w-full rounded-btn max-h-[70vh]"
+                />
+              );
+            })()}
           </div>
         </Modal>
       )}
