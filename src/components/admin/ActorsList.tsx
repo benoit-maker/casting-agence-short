@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Video, Trash2, X, Eye } from "lucide-react";
+import { Search, Video, Trash2, X, Eye, CheckCircle2, Circle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Tag } from "@/components/ui/Tag";
 import { CopyActorLinkButton } from "@/components/admin/CopyActorLinkButton";
@@ -22,17 +22,22 @@ export function ActorsList({ actors }: ActorsListProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [filterWorked, setFilterWorked] = useState<boolean | null>(null);
+  const [workedWith, setWorkedWith] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(actors.map((a) => [a.id, a.has_worked_with_us]))
+  );
   const router = useRouter();
   const supabase = createClient();
 
   const allCities = Array.from(new Set(actors.flatMap((a) => a.cities))).sort();
 
-  const hasActiveFilters = filterSex !== null || filterAge.length > 0 || filterCity !== null;
+  const hasActiveFilters = filterSex !== null || filterAge.length > 0 || filterCity !== null || filterWorked !== null;
 
   const filtered = actors.filter((actor) => {
     if (filterSex && actor.sex !== filterSex) return false;
     if (filterAge.length > 0 && !filterAge.some((r) => actor.age_ranges.includes(r))) return false;
     if (filterCity && !actor.cities.includes(filterCity)) return false;
+    if (filterWorked !== null && workedWith[actor.id] !== filterWorked) return false;
     if (search) {
       const q = search.toLowerCase();
       return (
@@ -43,6 +48,19 @@ export function ActorsList({ actors }: ActorsListProps) {
     }
     return true;
   });
+
+  async function toggleWorkedWith(actorId: string) {
+    const current = workedWith[actorId];
+    setWorkedWith((prev) => ({ ...prev, [actorId]: !current }));
+    const res = await fetch(`/api/actors/${actorId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ has_worked_with_us: !current }),
+    });
+    if (!res.ok) {
+      setWorkedWith((prev) => ({ ...prev, [actorId]: current }));
+    }
+  }
 
   async function handleDelete(actorId: string) {
     setDeleting(actorId);
@@ -127,11 +145,32 @@ export function ActorsList({ actors }: ActorsListProps) {
           </select>
         </div>
 
+        {/* A tourné */}
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Expérience</span>
+          <div className="flex gap-1">
+            {([true, false] as const).map((val) => (
+              <button
+                key={String(val)}
+                type="button"
+                onClick={() => setFilterWorked(filterWorked === val ? null : val)}
+                className={`px-3 py-1.5 rounded-btn text-sm font-medium transition-colors cursor-pointer ${
+                  filterWorked === val
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {val ? "A tourné" : "Jamais tourné"}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Réinitialiser */}
         {hasActiveFilters && (
           <button
             type="button"
-            onClick={() => { setFilterSex(null); setFilterAge([]); setFilterCity(null); }}
+            onClick={() => { setFilterSex(null); setFilterAge([]); setFilterCity(null); setFilterWorked(null); }}
             className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-400 hover:text-gray-600 cursor-pointer self-end"
           >
             <X className="w-3.5 h-3.5" />
@@ -168,7 +207,7 @@ export function ActorsList({ actors }: ActorsListProps) {
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Âge</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Ville</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Vidéo</th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Statut</th>
+              <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Tourné</th>
               <th className="px-6 py-3" />
             </tr>
           </thead>
@@ -221,10 +260,18 @@ export function ActorsList({ actors }: ActorsListProps) {
                   )}
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${actor.is_active ? "text-success" : "text-gray-400"}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${actor.is_active ? "bg-success" : "bg-gray-400"}`} />
-                    {actor.is_active ? "Actif" : "Inactif"}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => toggleWorkedWith(actor.id)}
+                    title={workedWith[actor.id] ? "A tourné avec nous — cliquer pour retirer" : "N'a pas encore tourné — cliquer pour confirmer"}
+                    className="cursor-pointer"
+                  >
+                    {workedWith[actor.id] ? (
+                      <CheckCircle2 className="w-5 h-5 text-success" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-gray-300 hover:text-gray-400" />
+                    )}
+                  </button>
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">

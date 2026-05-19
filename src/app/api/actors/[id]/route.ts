@@ -21,6 +21,7 @@ const ALLOWED_FIELDS = [
   "brands",
   "notes",
   "is_active",
+  "has_worked_with_us",
 ] as const;
 
 export async function PUT(

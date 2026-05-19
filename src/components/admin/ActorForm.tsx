@@ -45,6 +45,7 @@ export function ActorForm({ actor }: ActorFormProps) {
   const [brands, setBrands] = useState<string[]>(actor?.brands || []);
   const [newBrand, setNewBrand] = useState("");
   const [isActive, setIsActive] = useState(actor?.is_active ?? true);
+  const [hasWorkedWithUs, setHasWorkedWithUs] = useState(actor?.has_worked_with_us ?? false);
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
@@ -198,6 +199,7 @@ export function ActorForm({ actor }: ActorFormProps) {
       notes,
       brands,
       is_active: isActive,
+      has_worked_with_us: hasWorkedWithUs,
     };
 
     try {
@@ -624,6 +626,26 @@ export function ActorForm({ actor }: ActorFormProps) {
             rows={4}
             className="w-full px-4 py-2.5 rounded-btn border border-gray-200 bg-white text-dark placeholder:text-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200 resize-y"
           />
+        </div>
+
+        {/* A déjà tourné avec nous */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setHasWorkedWithUs(!hasWorkedWithUs)}
+            className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
+              hasWorkedWithUs ? "bg-primary" : "bg-gray-200"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                hasWorkedWithUs ? "translate-x-5" : ""
+              }`}
+            />
+          </button>
+          <span className="text-sm text-gray-600">
+            {hasWorkedWithUs ? "A déjà tourné avec nous" : "N'a pas encore tourné avec nous"}
+          </span>
         </div>
 
         {/* Actif */}

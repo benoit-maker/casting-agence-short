@@ -44,6 +44,7 @@ export interface Actor {
   portfolio_link: string | null;
   micro_entrepreneur_status: MicroEntrepreneurStatus | null;
   date_of_birth: string | null;
+  has_worked_with_us: boolean;
   created_at: string;
   updated_at: string;
 }
