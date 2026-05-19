@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import { Tag } from "@/components/ui/Tag";
-import { GrowthChart } from "@/components/admin/GrowthChart";
+import { WeeklyBarChart } from "@/components/admin/WeeklyBarChart";
 
 interface StatEntry {
   label: string;
@@ -22,7 +22,8 @@ interface StatsViewProps {
   topCities: StatEntry[];
   topProfiles: ProfileEntry[];
   rareProfiles: ProfileEntry[];
-  growthData: { month: string; total: number }[];
+  weeklyActors: { week: string; count: number }[];
+  weeklyWorked: { week: string; count: number }[];
 }
 
 function ProgressBar({ pct }: { pct: number }) {
@@ -84,7 +85,7 @@ function ProfileList({ rows, variant }: { rows: ProfileEntry[]; variant: "top" |
   );
 }
 
-export function StatsView({ total, active, sex, ageRanges, topCities, topProfiles, rareProfiles, growthData }: StatsViewProps) {
+export function StatsView({ total, active, sex, ageRanges, topCities, topProfiles, rareProfiles, weeklyActors, weeklyWorked }: StatsViewProps) {
   const inactive = total - active;
   const activityRate = total ? Math.round((active / total) * 100) : 0;
 
@@ -110,15 +111,25 @@ export function StatsView({ total, active, sex, ageRanges, topCities, topProfile
         </Card>
       </div>
 
-      {/* Courbe de croissance */}
-      {growthData.length > 1 && (
-        <Card className="p-6">
-          <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-6">
-            Évolution du nombre d'acteurs
-          </h2>
-          <GrowthChart data={growthData} />
-        </Card>
-      )}
+      {/* Histogrammes hebdomadaires */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {weeklyActors.length > 1 && (
+          <Card className="p-6">
+            <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-6">
+              Nouvelles inscriptions par semaine
+            </h2>
+            <WeeklyBarChart data={weeklyActors} color="#665DFF" tooltipLabel="Nouveaux acteurs" />
+          </Card>
+        )}
+        {weeklyWorked.length > 0 && (
+          <Card className="p-6">
+            <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-6">
+              Nouveaux acteurs ayant tourné par semaine
+            </h2>
+            <WeeklyBarChart data={weeklyWorked} color="#22c55e" tooltipLabel="Ont tourné" />
+          </Card>
+        )}
+      </div>
 
       {/* Tableaux */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -78,6 +78,14 @@ export async function PUT(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  if (typeof data.has_worked_with_us === "boolean") {
+    if (data.has_worked_with_us) {
+      await admin.from("worked_with_us_history").insert({ actor_id: id });
+    } else {
+      await admin.from("worked_with_us_history").delete().eq("actor_id", id);
+    }
+  }
+
   return NextResponse.json({ actor });
 }
 
