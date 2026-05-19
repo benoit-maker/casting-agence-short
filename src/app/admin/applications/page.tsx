@@ -16,11 +16,15 @@ import {
   type MicroEntrepreneurStatus,
 } from "@/lib/types";
 
-type VideoType = "youtube" | "drive" | "file";
+type VideoType = "youtube" | "drive" | "vimeo" | "instagram" | "tiktok" | "facebook" | "file";
 
 function detectVideoType(url: string): VideoType {
   if (/youtube\.com|youtu\.be/.test(url)) return "youtube";
   if (/drive\.google\.com/.test(url)) return "drive";
+  if (/vimeo\.com/.test(url)) return "vimeo";
+  if (/instagram\.com/.test(url)) return "instagram";
+  if (/tiktok\.com/.test(url)) return "tiktok";
+  if (/facebook\.com|fb\.com/.test(url)) return "facebook";
   return "file";
 }
 
@@ -42,11 +46,26 @@ function getDriveEmbedUrl(url: string): string {
   return url;
 }
 
+function getVimeoEmbedUrl(url: string): string {
+  const match = url.match(/vimeo\.com\/(\d+)/);
+  if (match) return `https://player.vimeo.com/video/${match[1]}?autoplay=1`;
+  return url;
+}
+
+const VIDEO_LABELS: Record<VideoType, { label: string; className: string }> = {
+  youtube:   { label: "YouTube",   className: "text-red-500" },
+  drive:     { label: "Drive",     className: "text-blue-500" },
+  vimeo:     { label: "Vimeo",     className: "text-sky-500" },
+  instagram: { label: "Instagram", className: "text-pink-500" },
+  tiktok:    { label: "TikTok",    className: "text-gray-900" },
+  facebook:  { label: "Facebook",  className: "text-blue-700" },
+  file:      { label: "Fichier",   className: "text-gray-400" },
+};
+
 function VideoLabel({ url }: { url: string }) {
   const type = detectVideoType(url);
-  if (type === "youtube") return <span className="text-xs text-red-500 font-medium">YouTube</span>;
-  if (type === "drive") return <span className="text-xs text-blue-500 font-medium">Drive</span>;
-  return <span className="text-xs text-gray-400">Fichier</span>;
+  const { label, className } = VIDEO_LABELS[type];
+  return <span className={`text-xs font-medium ${className}`}>{label}</span>;
 }
 
 interface Application {
@@ -529,40 +548,33 @@ export default function ApplicationsPage() {
             ) : (() => {
               const url = mediaModal.urls[0];
               const type = detectVideoType(url);
-              if (type === "youtube") {
-                return (
-                  <iframe
-                    src={getYouTubeEmbedUrl(url)}
-                    allow="autoplay; encrypted-media; fullscreen"
-                    allowFullScreen
-                    className="w-full aspect-video rounded-btn"
-                  />
-                );
-              }
-              if (type === "drive") {
-                return (
-                  <iframe
-                    src={getDriveEmbedUrl(url)}
-                    allow="autoplay"
-                    allowFullScreen
-                    className="w-full aspect-video rounded-btn"
-                  />
-                );
-              }
+
+              if (type === "youtube") return (
+                <iframe src={getYouTubeEmbedUrl(url)} allow="autoplay; encrypted-media; fullscreen" allowFullScreen className="w-full aspect-video rounded-btn" />
+              );
+
+              if (type === "drive") return (
+                <iframe src={getDriveEmbedUrl(url)} allow="autoplay" allowFullScreen className="w-full aspect-video rounded-btn" />
+              );
+
+              if (type === "vimeo") return (
+                <iframe src={getVimeoEmbedUrl(url)} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen className="w-full aspect-video rounded-btn" />
+              );
+
+              if (type === "instagram" || type === "tiktok" || type === "facebook") return (
+                <div className="py-8 text-center space-y-4">
+                  <p className="text-sm text-gray-500">Cette vidéo ne peut pas être lue ici.</p>
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline font-medium">
+                    <ExternalLink className="w-4 h-4" />
+                    Ouvrir dans un nouvel onglet
+                  </a>
+                </div>
+              );
+
               return (
                 <div className="space-y-3">
-                  <video
-                    src={url}
-                    controls
-                    autoPlay
-                    className="w-full rounded-btn max-h-[70vh]"
-                  />
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary transition-colors"
-                  >
+                  <video src={url} controls autoPlay className="w-full rounded-btn max-h-[70vh]" />
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary transition-colors">
                     <ExternalLink className="w-3.5 h-3.5" />
                     Ouvrir dans un nouvel onglet
                   </a>
