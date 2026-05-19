@@ -477,7 +477,7 @@ export function ActorForm({ actor }: ActorFormProps) {
                       rel="noopener noreferrer"
                       className="text-sm text-primary hover:underline truncate flex-1"
                     >
-                      {filename.length > 50 ? filename.slice(0, 50) + "…" : filename}
+                      Vidéo {i + 1}
                     </a>
                     <button
                       type="button"

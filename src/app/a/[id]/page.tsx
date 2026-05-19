@@ -83,14 +83,21 @@ export default async function ActorPublicPage({
             </div>
 
             {/* Videos */}
-            {actor.video_url && (
-              <ActorVideoPlayer videoUrl={actor.video_url} actorName={displayName} />
-            )}
-            {(actor.video_urls as string[] | null)?.filter((u: string) => u !== actor.video_url).map((url: string, i: number) => (
-              <div key={i} className="mt-2">
-                <ActorVideoPlayer videoUrl={url} actorName={displayName} label={`Vidéo ${i + 2}`} />
-              </div>
-            ))}
+            {(() => {
+              const allVideos = [
+                ...(actor.video_url ? [actor.video_url] : []),
+                ...((actor.video_urls as string[] | null) ?? []).filter((u: string) => u !== actor.video_url),
+              ];
+              return allVideos.map((url: string, i: number) => (
+                <div key={i} className={i > 0 ? "mt-2" : ""}>
+                  <ActorVideoPlayer
+                    videoUrl={url}
+                    actorName={displayName}
+                    label={allVideos.length > 1 ? `Vidéo ${i + 1}` : undefined}
+                  />
+                </div>
+              ));
+            })()}
           </div>
         </div>
 
