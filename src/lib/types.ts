@@ -43,6 +43,7 @@ export interface Actor {
   accepts_rate: boolean | null;
   portfolio_link: string | null;
   micro_entrepreneur_status: MicroEntrepreneurStatus | null;
+  date_of_birth: string | null;
   created_at: string;
   updated_at: string;
 }

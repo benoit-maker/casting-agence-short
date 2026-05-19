@@ -413,6 +413,22 @@ export function ActorForm({ actor }: ActorFormProps) {
           />
         </div>
 
+        {/* Date de naissance */}
+        {actor?.date_of_birth && (
+          <div>
+            <label className="block text-sm font-medium text-dark mb-1">
+              Date de naissance
+            </label>
+            <p className="text-sm text-gray-700">
+              {new Date(actor.date_of_birth).toLocaleDateString("fr-FR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+        )}
+
         {/* Video */}
         <div>
           <label className="block text-sm font-medium text-dark mb-2">
