@@ -20,6 +20,57 @@ async function canManageCasting(
   return data?.project_manager_id === userId;
 }
 
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const { id } = await params;
+
+  if (!(await canManageCasting(id, auth.userId, auth.role))) {
+    return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Body invalide" }, { status: 400 });
+  }
+
+  const { client_name } = (body as { client_name?: unknown }) ?? {};
+
+  if (
+    typeof client_name !== "string" ||
+    client_name.trim().length === 0 ||
+    client_name.length > 200
+  ) {
+    return NextResponse.json(
+      { error: "client_name invalide (1-200 caractères)" },
+      { status: 400 }
+    );
+  }
+
+  const admin = createAdminClient();
+
+  const { data: casting, error } = await admin
+    .from("castings")
+    .update({ client_name: client_name.trim() })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ casting });
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

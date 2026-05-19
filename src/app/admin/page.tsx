@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
+import { InlineCastingName } from "@/components/admin/InlineCastingName";
 import type { Casting } from "@/lib/types";
 
 export default async function AdminDashboard() {
@@ -57,9 +58,11 @@ export default async function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
-                  <h2 className="font-heading font-semibold text-dark">
-                    {casting.client_name}
-                  </h2>
+                  <InlineCastingName
+                    castingId={casting.id}
+                    initialValue={casting.client_name}
+                    className="font-heading font-semibold text-dark"
+                  />
                   <StatusBadge status={casting.status} />
                 </div>
                 {casting.project_name && (

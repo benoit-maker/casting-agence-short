@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
 import { DeleteCastingButton } from "@/components/admin/DeleteCastingButton";
 import { EditCastingActors } from "@/components/admin/EditCastingActors";
+import { InlineCastingName } from "@/components/admin/InlineCastingName";
 import { getCastingUrl } from "@/lib/utils";
 import type { Actor } from "@/lib/types";
 
@@ -50,9 +51,11 @@ export default async function CastingDetailPage({
       <div className="flex items-start justify-between mb-8">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-heading font-semibold text-dark">
-              {casting.client_name}
-            </h1>
+            <InlineCastingName
+              castingId={casting.id}
+              initialValue={casting.client_name}
+              className="text-2xl font-heading font-semibold text-dark"
+            />
             <StatusBadge status={casting.status} />
           </div>
           {casting.project_name && (
