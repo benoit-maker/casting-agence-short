@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Video, Trash2, X } from "lucide-react";
+import { Search, Video, Trash2, X, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Tag } from "@/components/ui/Tag";
 import { CopyActorLinkButton } from "@/components/admin/CopyActorLinkButton";
@@ -228,6 +228,15 @@ export function ActorsList({ actors }: ActorsListProps) {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
+                    <a
+                      href={`/a/${actor.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-btn text-gray-400 hover:text-primary hover:bg-primary-light transition-colors"
+                      title="Voir le profil public"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </a>
                     <CopyActorLinkButton actorId={actor.id} />
                     {confirmDelete === actor.id ? (
                       <div className="flex items-center gap-1">
