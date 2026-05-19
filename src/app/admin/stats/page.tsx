@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { StatsView } from "@/components/admin/StatsView";
+import { REFERRAL_SOURCE_LABELS } from "@/lib/types";
 import type { Actor } from "@/lib/types";
 
 const AGE_RANGES = ["18-25 ans", "25-40 ans", "40-55 ans", "55+"];
@@ -70,6 +71,11 @@ export default async function StatsPage() {
   const topProfiles = [...allProfiles].sort((a, b) => b.count - a.count).slice(0, 3);
   const rareProfiles = [...allProfiles].sort((a, b) => a.count - b.count).slice(0, 3);
 
+  const referralSources = Object.entries(REFERRAL_SOURCE_LABELS).map(([key, label]) => {
+    const count = actors.filter((a) => a.referral_source === key).length;
+    return { label, count, pct: total ? Math.round((count / total) * 100) : 0 };
+  }).filter((r) => r.count > 0);
+
   const weeklyActors = groupByWeek(actors.map((a) => a.created_at));
   const weeklyWorked = groupByWeek((historyData || []).map((h: { marked_at: string }) => h.marked_at));
 
@@ -87,6 +93,7 @@ export default async function StatsPage() {
         topCities={topCities}
         topProfiles={topProfiles}
         rareProfiles={rareProfiles}
+        referralSources={referralSources}
         weeklyActors={weeklyActors}
         weeklyWorked={weeklyWorked}
       />

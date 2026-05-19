@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
       portfolio_link: app.portfolio_link || null,
       micro_entrepreneur_status: app.micro_entrepreneur_status || null,
       date_of_birth: app.date_of_birth || null,
+      referral_source: app.referral_source || null,
       is_active: true,
     })
     .select()

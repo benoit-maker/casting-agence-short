@@ -45,6 +45,7 @@ export interface Actor {
   micro_entrepreneur_status: MicroEntrepreneurStatus | null;
   date_of_birth: string | null;
   has_worked_with_us: boolean;
+  referral_source: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -97,6 +98,13 @@ export interface CastingWithDetails extends Casting {
   casting_actors?: (CastingActor & { actors?: Actor })[];
   selected_actor?: Actor;
 }
+
+export const REFERRAL_SOURCE_LABELS: Record<string, string> = {
+  facebook:         "Un groupe Facebook",
+  publicite:        "Une publicité",
+  bouche_a_oreille: "Le bouche-à-oreille",
+  recommandation:   "La recommandation d'une connaissance",
+};
 
 export const AGE_RANGES = ["18-25 ans", "25-40 ans", "40-55 ans", "55+"] as const;
 

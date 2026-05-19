@@ -11,6 +11,7 @@ const MAX_VIDEOS = 3;
 const ALLOWED_CITIES = new Set<string>(DEFAULT_CITIES as readonly string[]);
 const ALLOWED_AVAILABILITY = new Set(["flexible", "weekdays", "weekends"]);
 const ALLOWED_MICRO_STATUS = new Set(["yes", "no", "can_create"]);
+const ALLOWED_REFERRAL_SOURCES = new Set(["facebook", "publicite", "bouche_a_oreille", "recommandation"]);
 
 function isValidString(v: unknown, max = STR_MAX): v is string {
   return typeof v === "string" && v.length > 0 && v.length <= max;
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
     accepts_rate,
     portfolio_link,
     micro_entrepreneur_status,
+    referral_source,
   } = (body as Record<string, unknown>) ?? {};
 
   if (!isValidString(first_name, NAME_MAX)) {
@@ -160,6 +162,16 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+  if (
+    referral_source !== null &&
+    referral_source !== undefined &&
+    (typeof referral_source !== "string" || !ALLOWED_REFERRAL_SOURCES.has(referral_source))
+  ) {
+    return NextResponse.json(
+      { error: "Source de recrutement invalide" },
+      { status: 400 }
+    );
+  }
 
   const admin = createAdminClient();
 
@@ -178,6 +190,7 @@ export async function POST(request: NextRequest) {
     accepts_rate,
     portfolio_link: portfolio_link || null,
     micro_entrepreneur_status,
+    referral_source: referral_source || null,
   });
 
   if (error) {

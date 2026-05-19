@@ -22,6 +22,7 @@ interface StatsViewProps {
   topCities: StatEntry[];
   topProfiles: ProfileEntry[];
   rareProfiles: ProfileEntry[];
+  referralSources: StatEntry[];
   weeklyActors: { week: string; count: number }[];
   weeklyWorked: { week: string; count: number }[];
 }
@@ -85,7 +86,7 @@ function ProfileList({ rows, variant }: { rows: ProfileEntry[]; variant: "top" |
   );
 }
 
-export function StatsView({ total, active, sex, ageRanges, topCities, topProfiles, rareProfiles, weeklyActors, weeklyWorked }: StatsViewProps) {
+export function StatsView({ total, active, sex, ageRanges, topCities, topProfiles, rareProfiles, referralSources, weeklyActors, weeklyWorked }: StatsViewProps) {
   const inactive = total - active;
   const activityRate = total ? Math.round((active / total) * 100) : 0;
 
@@ -147,6 +148,13 @@ export function StatsView({ total, active, sex, ageRanges, topCities, topProfile
           <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-5">Top 10 villes</h2>
           <StatTable rows={topCities} note="Un acteur peut être rattaché à plusieurs villes." />
         </Card>
+
+        {referralSources.length > 0 && (
+          <Card className="p-6">
+            <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-5">Source de recrutement</h2>
+            <StatTable rows={referralSources} note="Basé sur les acteurs ayant répondu à la question." />
+          </Card>
+        )}
 
         {/* Profils représentés + rares — une seule Card, deux colonnes */}
         <Card className="p-6">

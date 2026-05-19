@@ -11,6 +11,7 @@ import {
   DEFAULT_CITIES,
   AVAILABILITY_LABELS,
   MICRO_ENTREPRENEUR_LABELS,
+  REFERRAL_SOURCE_LABELS,
   type Availability,
   type MicroEntrepreneurStatus,
 } from "@/lib/types";
@@ -31,6 +32,8 @@ export default function InscriptionPage() {
   const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
   const [newVideoLink, setNewVideoLink] = useState("");
   const [showLinkInput, setShowLinkInput] = useState(false);
+
+  const [referralSource, setReferralSource] = useState<string | null>(null);
 
   // Nouveaux champs
   const [availability, setAvailability] = useState<Availability[]>([]);
@@ -194,6 +197,7 @@ export default function InscriptionPage() {
           accepts_rate: acceptsRate,
           portfolio_link: portfolioLink.trim() || null,
           micro_entrepreneur_status: microStatus,
+          referral_source: referralSource,
         }),
       });
 
@@ -647,6 +651,31 @@ export default function InscriptionPage() {
               value={portfolioLink}
               onChange={(e) => setPortfolioLink(e.target.value)}
             />
+          </Card>
+
+          {/* Source de recrutement */}
+          <Card className="p-6 space-y-4">
+            <h2 className="text-lg font-heading font-semibold text-dark">
+              Comment avez-vous découvert nos castings ?
+            </h2>
+            <p className="text-sm text-gray-400">Optionnel</p>
+            <div className="flex flex-col gap-2">
+              {Object.entries(REFERRAL_SOURCE_LABELS).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setReferralSource(referralSource === key ? null : key)}
+                  className={cn(
+                    "px-4 py-3 rounded-btn text-sm font-medium transition-colors cursor-pointer text-left",
+                    referralSource === key
+                      ? "bg-primary text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </Card>
 
           <Button
