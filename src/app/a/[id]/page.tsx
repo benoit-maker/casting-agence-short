@@ -18,7 +18,6 @@ export default async function ActorPublicPage({
     .from("actors")
     .select("id, display_name, sex, age_ranges, cities, photo_url, video_url, video_urls")
     .eq("id", id)
-    .eq("is_active", true)
     .single();
 
   if (!actor) {
