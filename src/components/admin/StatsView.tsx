@@ -97,15 +97,15 @@ export function StatsView({ total, active, sex, ageRanges, topCities, topProfile
           <p className="text-4xl font-heading font-bold text-dark">{total}</p>
         </Card>
         <Card className="p-6">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Actifs</p>
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Ont tourné avec nous</p>
           <p className="text-4xl font-heading font-bold text-success">{active}</p>
         </Card>
         <Card className="p-6">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Inactifs</p>
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">N'ont pas encore tourné</p>
           <p className="text-4xl font-heading font-bold text-gray-400">{inactive}</p>
         </Card>
         <Card className="p-6">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Taux d'activité</p>
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Taux d'expérience</p>
           <p className="text-4xl font-heading font-bold text-dark">{activityRate}%</p>
         </Card>
       </div>

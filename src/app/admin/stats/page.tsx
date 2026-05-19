@@ -11,7 +11,7 @@ export default async function StatsPage() {
   const actors = (data as Actor[]) || [];
 
   const total = actors.length;
-  const active = actors.filter((a) => a.is_active).length;
+  const active = actors.filter((a) => a.has_worked_with_us).length;
 
   const sex = [
     { label: "Femmes", count: actors.filter((a) => a.sex === "Femme").length },

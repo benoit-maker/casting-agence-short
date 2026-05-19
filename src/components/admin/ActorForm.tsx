@@ -44,7 +44,6 @@ export function ActorForm({ actor }: ActorFormProps) {
   const [notes, setNotes] = useState((actor as any)?.notes || "");
   const [brands, setBrands] = useState<string[]>(actor?.brands || []);
   const [newBrand, setNewBrand] = useState("");
-  const [isActive, setIsActive] = useState(actor?.is_active ?? true);
   const [hasWorkedWithUs, setHasWorkedWithUs] = useState(actor?.has_worked_with_us ?? false);
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
@@ -198,7 +197,6 @@ export function ActorForm({ actor }: ActorFormProps) {
       video_urls: videoUrls,
       notes,
       brands,
-      is_active: isActive,
       has_worked_with_us: hasWorkedWithUs,
     };
 
@@ -648,25 +646,6 @@ export function ActorForm({ actor }: ActorFormProps) {
           </span>
         </div>
 
-        {/* Actif */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsActive(!isActive)}
-            className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
-              isActive ? "bg-primary" : "bg-gray-200"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                isActive ? "translate-x-5" : ""
-              }`}
-            />
-          </button>
-          <span className="text-sm text-gray-600">
-            {isActive ? "Actif" : "Inactif"}
-          </span>
-        </div>
       </Card>
 
       {error && (
