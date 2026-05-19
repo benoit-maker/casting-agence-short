@@ -550,12 +550,23 @@ export default function ApplicationsPage() {
                 );
               }
               return (
-                <video
-                  src={url}
-                  controls
-                  autoPlay
-                  className="w-full rounded-btn max-h-[70vh]"
-                />
+                <div className="space-y-3">
+                  <video
+                    src={url}
+                    controls
+                    autoPlay
+                    className="w-full rounded-btn max-h-[70vh]"
+                  />
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Ouvrir dans un nouvel onglet
+                  </a>
+                </div>
               );
             })()}
           </div>
