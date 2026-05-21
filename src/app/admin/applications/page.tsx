@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import {
   AVAILABILITY_LABELS,
   MICRO_ENTREPRENEUR_LABELS,
+  REFERRAL_SOURCE_LABELS,
   type Availability,
   type MicroEntrepreneurStatus,
 } from "@/lib/types";
@@ -86,6 +87,7 @@ interface Application {
   accepts_rate: boolean | null;
   portfolio_link: string | null;
   micro_entrepreneur_status: MicroEntrepreneurStatus | null;
+  referral_source: string | null;
 }
 
 export default function ApplicationsPage() {
@@ -315,6 +317,11 @@ export default function ApplicationsPage() {
                             month: "short",
                           })}
                         </span>
+                        {app.referral_source && REFERRAL_SOURCE_LABELS[app.referral_source] && (
+                          <span className="px-2 py-0.5 rounded-pill bg-gray-100 text-gray-500 text-xs">
+                            {REFERRAL_SOURCE_LABELS[app.referral_source]}
+                          </span>
+                        )}
                       </div>
                     </div>
 
