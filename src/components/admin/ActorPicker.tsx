@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
-import { Search, Check, GripVertical } from "lucide-react";
+import { Search, Check, GripVertical, Eye } from "lucide-react";
 import { Tag } from "@/components/ui/Tag";
 import { cn } from "@/lib/utils";
 import { AGE_RANGES, type Actor } from "@/lib/types";
@@ -168,9 +168,16 @@ export function ActorPicker({
                 className="flex items-center gap-2 bg-primary-light rounded-pill px-3 py-1.5"
               >
                 <GripVertical className="w-3 h-3 text-gray-400" />
-                <span className="text-sm font-medium text-primary">
+                <a
+                  href={`/a/${actor.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 text-sm font-medium text-primary hover:underline group/link"
+                >
                   {index + 1}. {actor.name}
-                </span>
+                  <Eye className="w-3 h-3 opacity-0 group-hover/link:opacity-60 transition-opacity" />
+                </a>
                 <button
                   type="button"
                   onClick={() => removeActor(actor.id)}

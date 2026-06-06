@@ -136,39 +136,46 @@ export default async function CastingDetailPage({
         {actors.map((actor) => {
           const isChosen = casting.selected_actor_id === actor.id;
           return (
-            <Card
+            <a
               key={actor.id}
-              className={`overflow-hidden ${isChosen ? "ring-2 ring-primary" : ""}`}
+              href={`/a/${actor.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block group"
             >
-              {actor.photo_url ? (
-                <Image
-                  src={actor.photo_url}
-                  alt={actor.name}
-                  width={200}
-                  height={200}
-                  className="w-full aspect-square object-cover"
-                />
-              ) : (
-                <div className="w-full aspect-square bg-gray-100 flex items-center justify-center text-3xl font-heading font-semibold text-gray-400">
-                  {actor.name[0]}
-                </div>
-              )}
-              <div className="p-3">
-                <p className="text-sm font-medium text-dark truncate">
-                  {actor.name}
-                </p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  <Tag variant={actor.sex === "Femme" ? "female" : "male"}>
-                    {actor.sex}
-                  </Tag>
-                </div>
-                {isChosen && (
-                  <p className="text-xs text-success font-medium mt-2">
-                    ✓ Choisi par le client
-                  </p>
+              <Card
+                className={`overflow-hidden transition-shadow group-hover:shadow-md ${isChosen ? "ring-2 ring-primary" : ""}`}
+              >
+                {actor.photo_url ? (
+                  <Image
+                    src={actor.photo_url}
+                    alt={actor.name}
+                    width={200}
+                    height={200}
+                    className="w-full aspect-square object-cover"
+                  />
+                ) : (
+                  <div className="w-full aspect-square bg-gray-100 flex items-center justify-center text-3xl font-heading font-semibold text-gray-400">
+                    {actor.name[0]}
+                  </div>
                 )}
-              </div>
-            </Card>
+                <div className="p-3">
+                  <p className="text-sm font-medium text-dark truncate group-hover:text-primary transition-colors">
+                    {actor.name}
+                  </p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <Tag variant={actor.sex === "Femme" ? "female" : "male"}>
+                      {actor.sex}
+                    </Tag>
+                  </div>
+                  {isChosen && (
+                    <p className="text-xs text-success font-medium mt-2">
+                      ✓ Choisi par le client
+                    </p>
+                  )}
+                </div>
+              </Card>
+            </a>
           );
         })}
       </div>
