@@ -6,13 +6,17 @@ import {
   isAllowedPhotoUrl,
   isAllowedVideoUrl,
 } from "@/lib/auth";
+import { computeAgeRanges } from "@/lib/utils";
+import { PROFILE_TYPES } from "@/lib/types";
+
+const ALLOWED_PROFILE_TYPES = new Set<string>(PROFILE_TYPES as readonly string[]);
 
 // Champs autorisés (whitelist anti-mass-assignment)
 const ALLOWED_FIELDS = [
   "name",
   "display_name",
   "sex",
-  "age_ranges",
+  "profile_type",
   "cities",
   "phone",
   "rate",
@@ -22,7 +26,9 @@ const ALLOWED_FIELDS = [
   "brands",
   "notes",
   "is_active",
+  "is_blacklisted",
   "has_worked_with_us",
+  "date_of_birth",
 ] as const;
 
 export async function POST(request: NextRequest) {
@@ -44,10 +50,29 @@ export async function POST(request: NextRequest) {
   if (data.sex !== undefined && data.sex !== "Femme" && data.sex !== "Homme") {
     return NextResponse.json({ error: "Sexe invalide" }, { status: 400 });
   }
+  if (
+    data.profile_type !== undefined &&
+    (typeof data.profile_type !== "string" || !ALLOWED_PROFILE_TYPES.has(data.profile_type))
+  ) {
+    return NextResponse.json({ error: "Type de profil invalide" }, { status: 400 });
+  }
   // Required fields
   if (typeof data.name !== "string" || !data.name.trim()) {
     return NextResponse.json({ error: "Nom requis" }, { status: 400 });
   }
+
+  if (
+    data.date_of_birth !== undefined &&
+    data.date_of_birth !== null &&
+    (typeof data.date_of_birth !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(data.date_of_birth))
+  ) {
+    return NextResponse.json(
+      { error: "Date de naissance invalide" },
+      { status: 400 }
+    );
+  }
+  data.age_ranges = computeAgeRanges(data.date_of_birth as string | null | undefined);
 
   // Validate URLs
   if (data.photo_url && !isAllowedPhotoUrl(data.photo_url)) {

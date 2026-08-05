@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_CITIES,
+  DEFAULT_LANGUAGES,
   AVAILABILITY_LABELS,
   MICRO_ENTREPRENEUR_LABELS,
   REFERRAL_SOURCE_LABELS,
@@ -24,7 +25,10 @@ export default function InscriptionPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
-  const [cities, setCities] = useState<string[]>([]);
+  const [city, setCity] = useState<string | null>(null);
+  const [languages, setLanguages] = useState<string[]>([]);
+  const [showOtherLanguage, setShowOtherLanguage] = useState(false);
+  const [customLanguage, setCustomLanguage] = useState("");
   const [sex, setSex] = useState<"Femme" | "Homme">("Femme");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -49,6 +53,8 @@ export default function InscriptionPage() {
     | { type: "file"; file: File; name: string }
     | { type: "link"; url: string };
   const MAX_VIDEO_ITEMS = 3;
+  const MAX_VIDEO_SIZE_MB = 100;
+  const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
 
   const totalVideoItems = videoItems.length;
 
@@ -67,8 +73,20 @@ export default function InscriptionPage() {
     if (!files) return;
     const remaining = MAX_VIDEO_ITEMS - totalVideoItems;
     if (remaining <= 0) return;
-    const newFiles: VideoItem[] = Array.from(files)
-      .filter((f) => f.type.startsWith("video/") || f.name.endsWith(".mov"))
+
+    const validFiles: File[] = [];
+    for (const file of Array.from(files)) {
+      if (!(file.type.startsWith("video/") || file.name.endsWith(".mov"))) continue;
+      if (file.size > MAX_VIDEO_SIZE_BYTES) {
+        alert(
+          `Le fichier ${file.name} dépasse la limite de ${MAX_VIDEO_SIZE_MB} Mo. Merci de compresser la vidéo ou d'en choisir une plus légère.`
+        );
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    const newFiles: VideoItem[] = validFiles
       .slice(0, remaining)
       .map((file) => ({ type: "file" as const, file, name: file.name }));
     setVideoItems((prev) => [...prev, ...newFiles]);
@@ -96,14 +114,22 @@ export default function InscriptionPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    if (!phone.trim()) {
+      alert("Le numéro de téléphone est obligatoire.");
+      return;
+    }
     if (videoItems.length === 0) {
       alert("Vous devez ajouter au moins une vidéo ou un lien.");
       return;
     }
-    if (cities.length === 0) {
-      alert("Vous devez sélectionner au moins une ville.");
+    if (!city) {
+      alert("Vous devez sélectionner votre ville.");
       return;
     }
+    const trimmedCustomLanguage = customLanguage.trim();
+    const allLanguages = trimmedCustomLanguage
+      ? [...languages, trimmedCustomLanguage]
+      : languages;
     if (availability.length === 0) {
       alert("Indiquez votre disponibilité.");
       return;
@@ -122,7 +148,7 @@ export default function InscriptionPage() {
     try {
       const supabase = createClient();
 
-      async function uploadFile(file: File, folder: string): Promise<string> {
+      async function uploadOnce(file: File, folder: string): Promise<string> {
         const res = await fetch("/api/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -148,10 +174,36 @@ export default function InscriptionPage() {
           });
 
         if (error) {
-          console.error(`Upload failed for ${file.name}:`, error);
           throw new Error(`Échec de l'upload de ${file.name}`);
         }
+
+        // Vérifie que le fichier a bien été transféré en entier (upload
+        // silencieusement vide possible sur réseau instable, ex. mobile)
+        const check = await fetch(publicUrl, { method: "HEAD" });
+        const uploadedSize = parseInt(check.headers.get("content-length") || "0", 10);
+        if (!check.ok || uploadedSize === 0 || uploadedSize !== file.size) {
+          throw new Error(`Upload incomplet pour ${file.name}`);
+        }
+
         return publicUrl;
+      }
+
+      async function uploadFile(file: File, folder: string): Promise<string> {
+        const MAX_ATTEMPTS = 2;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          try {
+            if (attempt > 1) {
+              setUploadStatus(`Nouvelle tentative d'upload pour ${file.name}...`);
+            }
+            return await uploadOnce(file, folder);
+          } catch (err) {
+            console.error(`Upload attempt ${attempt} failed for ${file.name}:`, err);
+            if (attempt === MAX_ATTEMPTS) {
+              throw new Error(`Échec de l'upload de ${file.name}, veuillez réessayer.`);
+            }
+          }
+        }
+        throw new Error(`Échec de l'upload de ${file.name}, veuillez réessayer.`);
       }
 
       const photoUrls: string[] = [];
@@ -187,10 +239,10 @@ export default function InscriptionPage() {
           first_name: firstName,
           last_name: lastName,
           date_of_birth: dateOfBirth || null,
-          cities,
+          cities: city ? [city] : [],
           sex,
           email: email || null,
-          phone: phone || null,
+          phone: phone.trim(),
           photo_urls: photoUrls,
           video_urls: videoUrls,
           availability,
@@ -198,6 +250,7 @@ export default function InscriptionPage() {
           portfolio_link: portfolioLink.trim() || null,
           micro_entrepreneur_status: microStatus,
           referral_source: referralSource,
+          languages: allLanguages,
         }),
       });
 
@@ -293,25 +346,19 @@ export default function InscriptionPage() {
 
             <div>
               <label className="block text-sm font-medium text-dark mb-2">
-                Ville(s) *{" "}
+                Ville *{" "}
                 <span className="text-gray-400 font-normal">
-                  (sélection multiple)
+                  (ta ville la plus proche)
                 </span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {DEFAULT_CITIES.map((c) => {
-                  const selected = cities.includes(c);
+                  const selected = city === c;
                   return (
                     <button
                       key={c}
                       type="button"
-                      onClick={() =>
-                        setCities((prev) =>
-                          prev.includes(c)
-                            ? prev.filter((x) => x !== c)
-                            : [...prev, c]
-                        )
-                      }
+                      onClick={() => setCity(c)}
                       className={cn(
                         "px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer",
                         selected
@@ -361,11 +408,68 @@ export default function InscriptionPage() {
               />
               <Input
                 id="phone"
-                label="Téléphone"
+                label="Téléphone *"
                 placeholder="06 12 34 56 78"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                required
               />
+            </div>
+          </Card>
+
+          {/* Langues parlées */}
+          <Card className="p-6 space-y-4">
+            <h2 className="text-lg font-heading font-semibold text-dark">
+              Langues parlées
+            </h2>
+            <div>
+              <div className="flex flex-wrap gap-2">
+                {DEFAULT_LANGUAGES.map((l) => {
+                  const selected = languages.includes(l);
+                  return (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() =>
+                        setLanguages((prev) =>
+                          prev.includes(l)
+                            ? prev.filter((x) => x !== l)
+                            : [...prev, l]
+                        )
+                      }
+                      className={cn(
+                        "px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer",
+                        selected
+                          ? "bg-primary text-white"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      )}
+                    >
+                      {l}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => setShowOtherLanguage((prev) => !prev)}
+                  className={cn(
+                    "px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer",
+                    showOtherLanguage
+                      ? "bg-primary text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  )}
+                >
+                  Autre
+                </button>
+              </div>
+              {showOtherLanguage && (
+                <div className="mt-3">
+                  <Input
+                    placeholder="Précisez la langue"
+                    value={customLanguage}
+                    onChange={(e) => setCustomLanguage(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
           </Card>
 
@@ -473,7 +577,7 @@ export default function InscriptionPage() {
               Photos
             </h2>
             <p className="text-sm text-gray-400">
-              Ajoutez une photo de profil (portrait de face de préférence).
+              Ajoutez une photo de profil professionnelle. Cette photo ne pourra pas être modifiée par la suite.
             </p>
 
             <div className="flex flex-wrap gap-3">
@@ -525,6 +629,14 @@ export default function InscriptionPage() {
               <strong>Un contenu minimum obligatoire.</strong> Importez des
               fichiers vidéo ou collez des liens (YouTube, Google Drive...).
               Maximum {MAX_VIDEO_ITEMS} contenus au total.
+            </p>
+            <p className="text-sm text-gray-400">
+              Filme-toi en train de te présenter : prénom, âge, ville, ton
+              expérience ou ta motivation pour faire de l&apos;acting pour des
+              marques. Sens-toi libre de montrer ta personnalité et ton
+              univers - ces vidéos seront visionnées directement par nos
+              clients. Tu peux aussi ajouter des vidéos d&apos;acting ou des
+              bandes démo en plus de ta présentation.
             </p>
 
             <div className="space-y-2">
@@ -620,7 +732,7 @@ export default function InscriptionPage() {
               )}
             </div>
             <p className="text-xs text-gray-400">
-              {totalVideoItems}/{MAX_VIDEO_ITEMS} contenus ajoutés
+              {totalVideoItems}/{MAX_VIDEO_ITEMS} contenus ajoutés · {MAX_VIDEO_SIZE_MB} Mo maximum par fichier vidéo
             </p>
             <input
               ref={videoInputRef}

@@ -32,6 +32,7 @@ export function ActorPicker({
   const filtered = useMemo(() => {
     return actors.filter((actor) => {
       if (!actor.is_active) return false;
+      if (actor.is_blacklisted) return false;
       if (search && !actor.name.toLowerCase().includes(search.toLowerCase()))
         return false;
       if (filterSex && actor.sex !== filterSex) return false;

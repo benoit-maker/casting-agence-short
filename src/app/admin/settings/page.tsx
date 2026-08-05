@@ -1,15 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Shield, UserCog } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { Plus, Shield, UserCog, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
-import type { Profile } from "@/lib/types";
+import type { Profile, UserRole } from "@/lib/types";
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  super_admin: "Super Admin",
+  project_manager: "Chef de projet",
+  catalogue: "Catalogue",
+};
 
 export default function SettingsPage() {
-  const supabase = createClient();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -60,9 +64,7 @@ export default function SettingsPage() {
     setCreating(false);
   }
 
-  async function toggleRole(profile: Profile) {
-    const newRole =
-      profile.role === "super_admin" ? "project_manager" : "super_admin";
+  async function changeRole(profile: Profile, newRole: UserRole) {
     const res = await fetch("/api/admin/toggle-role", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -174,28 +176,31 @@ export default function SettingsPage() {
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill text-xs font-medium ${
                         profile.role === "super_admin"
                           ? "bg-primary-light text-primary"
-                          : "bg-gray-100 text-gray-600"
+                          : profile.role === "catalogue"
+                            ? "bg-tag-profile-bg text-tag-profile-text"
+                            : "bg-gray-100 text-gray-600"
                       }`}
                     >
                       {profile.role === "super_admin" ? (
                         <Shield className="w-3 h-3" />
+                      ) : profile.role === "catalogue" ? (
+                        <BookOpen className="w-3 h-3" />
                       ) : (
                         <UserCog className="w-3 h-3" />
                       )}
-                      {profile.role === "super_admin"
-                        ? "Super Admin"
-                        : "Chef de projet"}
+                      {ROLE_LABELS[profile.role]}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => toggleRole(profile)}
-                      className="text-sm text-primary hover:text-primary-dark font-medium cursor-pointer"
+                    <select
+                      value={profile.role}
+                      onChange={(e) => changeRole(profile, e.target.value as UserRole)}
+                      className="px-3 py-1.5 rounded-btn border border-gray-200 bg-white text-sm text-dark focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all cursor-pointer"
                     >
-                      {profile.role === "super_admin"
-                        ? "Rétrograder"
-                        : "Promouvoir admin"}
-                    </button>
+                      <option value="super_admin">{ROLE_LABELS.super_admin}</option>
+                      <option value="project_manager">{ROLE_LABELS.project_manager}</option>
+                      <option value="catalogue">{ROLE_LABELS.catalogue}</option>
+                    </select>
                   </td>
                 </tr>
               ))

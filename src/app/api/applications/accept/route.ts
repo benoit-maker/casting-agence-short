@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generateDisplayName } from "@/lib/utils";
+import { generateDisplayName, computeAgeRanges } from "@/lib/utils";
 import { requireAuth } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(["super_admin", "project_manager"]);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -42,17 +42,7 @@ export async function POST(request: NextRequest) {
   const fullName = `${app.first_name} ${app.last_name}`;
 
   // Determine age range from date of birth
-  let ageRanges: string[] = [];
-  if (app.date_of_birth) {
-    const birthDate = new Date(app.date_of_birth);
-    const age = Math.floor(
-      (Date.now() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
-    );
-    if (age < 25) ageRanges = ["18-25 ans"];
-    else if (age < 40) ageRanges = ["25-40 ans"];
-    else if (age < 55) ageRanges = ["40-55 ans"];
-    else ageRanges = ["55+"];
-  }
+  const ageRanges = computeAgeRanges(app.date_of_birth);
 
   const { data: actor, error: actorError } = await admin
     .from("actors")
@@ -60,6 +50,7 @@ export async function POST(request: NextRequest) {
       name: fullName,
       display_name: generateDisplayName(fullName),
       sex: app.sex,
+      profile_type: app.profile_type,
       age_ranges: ageRanges,
       cities:
         app.cities && app.cities.length > 0
@@ -75,6 +66,7 @@ export async function POST(request: NextRequest) {
       accepts_rate: app.accepts_rate ?? null,
       portfolio_link: app.portfolio_link || null,
       micro_entrepreneur_status: app.micro_entrepreneur_status || null,
+      languages: app.languages || [],
       date_of_birth: app.date_of_birth || null,
       referral_source: app.referral_source || null,
       is_active: true,

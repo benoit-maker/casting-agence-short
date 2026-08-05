@@ -1,10 +1,8 @@
 import Image from "next/image";
-import { Play } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Logo } from "@/components/ui/Logo";
 import { Tag } from "@/components/ui/Tag";
 import { ActorVideoPlayer } from "./ActorVideoPlayer";
-import type { Actor } from "@/lib/types";
 
 export default async function ActorPublicPage({
   params,
@@ -16,11 +14,11 @@ export default async function ActorPublicPage({
 
   const { data: actor } = await supabase
     .from("actors")
-    .select("id, display_name, sex, age_ranges, cities, photo_url, video_url, video_urls")
+    .select("id, display_name, sex, profile_type, age_ranges, cities, languages, photo_url, video_url, video_urls, is_blacklisted")
     .eq("id", id)
     .single();
 
-  if (!actor) {
+  if (!actor || actor.is_blacklisted) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="text-center">
@@ -73,12 +71,17 @@ export default async function ActorPublicPage({
               <Tag variant={actor.sex === "Femme" ? "female" : "male"}>
                 {actor.sex}
               </Tag>
+              <Tag variant="profile">{actor.profile_type}</Tag>
               {(actor.age_ranges as string[]).map((age: string) => (
                 <Tag key={age} variant="age">{age}</Tag>
               ))}
               {(actor.cities as string[]).map((city: string) => (
                 <Tag key={city} variant="city">{city}</Tag>
               ))}
+              {actor.languages && (actor.languages as string[]).length > 0 &&
+                (actor.languages as string[]).map((lang: string) => (
+                  <Tag key={lang} variant="language">{lang}</Tag>
+                ))}
             </div>
 
             {/* Videos */}

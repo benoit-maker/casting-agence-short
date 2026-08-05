@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-type TagVariant = "female" | "male" | "age" | "city";
+type TagVariant = "female" | "male" | "age" | "city" | "profile" | "language" | "experience";
 
 interface TagProps {
   variant: TagVariant;
@@ -13,6 +13,9 @@ const variantStyles: Record<TagVariant, string> = {
   male: "bg-tag-male-bg text-tag-male-text",
   age: "bg-tag-age-bg text-tag-age-text",
   city: "bg-tag-city-bg text-tag-city-text",
+  profile: "bg-tag-profile-bg text-tag-profile-text",
+  language: "bg-tag-language-bg text-tag-language-text",
+  experience: "bg-tag-experience-bg text-tag-experience-text",
 };
 
 const icons: Record<TagVariant, string> = {
@@ -20,6 +23,9 @@ const icons: Record<TagVariant, string> = {
   male: "♂",
   age: "",
   city: "📍",
+  profile: "",
+  language: "",
+  experience: "",
 };
 
 export function Tag({ variant, children, className }: TagProps) {

@@ -6,12 +6,18 @@ import {
   isAllowedPhotoUrl,
   isAllowedVideoUrl,
 } from "@/lib/auth";
+import { BLACKLIST_REASONS, PROFILE_TYPES } from "@/lib/types";
+import { computeAgeRanges } from "@/lib/utils";
+
+const ALLOWED_BLACKLIST_REASONS = new Set<string>(BLACKLIST_REASONS as readonly string[]);
+const ALLOWED_PROFILE_TYPES = new Set<string>(PROFILE_TYPES as readonly string[]);
+const REASON_DETAIL_MAX = 200;
 
 const ALLOWED_FIELDS = [
   "name",
   "display_name",
   "sex",
-  "age_ranges",
+  "profile_type",
   "cities",
   "phone",
   "rate",
@@ -21,14 +27,16 @@ const ALLOWED_FIELDS = [
   "brands",
   "notes",
   "is_active",
+  "is_blacklisted",
   "has_worked_with_us",
+  "date_of_birth",
 ] as const;
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(["super_admin", "project_manager"]);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -48,6 +56,28 @@ export async function PUT(
     return NextResponse.json({ error: "Sexe invalide" }, { status: 400 });
   }
 
+  if (
+    data.profile_type !== undefined &&
+    (typeof data.profile_type !== "string" || !ALLOWED_PROFILE_TYPES.has(data.profile_type))
+  ) {
+    return NextResponse.json({ error: "Type de profil invalide" }, { status: 400 });
+  }
+
+  if (
+    data.date_of_birth !== undefined &&
+    data.date_of_birth !== null &&
+    (typeof data.date_of_birth !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(data.date_of_birth))
+  ) {
+    return NextResponse.json(
+      { error: "Date de naissance invalide" },
+      { status: 400 }
+    );
+  }
+  if ("date_of_birth" in data) {
+    data.age_ranges = computeAgeRanges(data.date_of_birth as string | null);
+  }
+
   if (data.photo_url && !isAllowedPhotoUrl(data.photo_url)) {
     return NextResponse.json({ error: "photo_url invalide" }, { status: 400 });
   }
@@ -62,6 +92,22 @@ export async function PUT(
           { status: 400 }
         );
       }
+    }
+  }
+
+  const rawBody = (body as Record<string, unknown>) ?? {};
+  const reason = rawBody.reason;
+  const reasonDetail = rawBody.reason_detail;
+
+  if (data.is_blacklisted === true) {
+    if (typeof reason !== "string" || !ALLOWED_BLACKLIST_REASONS.has(reason)) {
+      return NextResponse.json({ error: "Motif de blacklist invalide" }, { status: 400 });
+    }
+    if (
+      reason === "Autre" &&
+      (typeof reasonDetail !== "string" || !reasonDetail.trim() || reasonDetail.length > REASON_DETAIL_MAX)
+    ) {
+      return NextResponse.json({ error: "Précisez le motif" }, { status: 400 });
     }
   }
 
@@ -80,9 +126,31 @@ export async function PUT(
 
   if (typeof data.has_worked_with_us === "boolean") {
     if (data.has_worked_with_us) {
-      await admin.from("worked_with_us_history").insert({ actor_id: id });
+      const { error: historyError } = await admin
+        .from("worked_with_us_history")
+        .insert({ actor_id: id });
+      if (historyError) {
+        console.error("[actors PUT] worked_with_us_history insert error:", historyError.message);
+      }
     } else {
-      await admin.from("worked_with_us_history").delete().eq("actor_id", id);
+      const { error: historyError } = await admin
+        .from("worked_with_us_history")
+        .delete()
+        .eq("actor_id", id);
+      if (historyError) {
+        console.error("[actors PUT] worked_with_us_history delete error:", historyError.message);
+      }
+    }
+  }
+
+  if (data.is_blacklisted === true) {
+    const { error: blacklistError } = await admin.from("blacklist_history").insert({
+      actor_id: id,
+      reason,
+      reason_detail: reason === "Autre" ? (reasonDetail as string).trim() : null,
+    });
+    if (blacklistError) {
+      console.error("[actors PUT] blacklist_history insert error:", blacklistError.message);
     }
   }
 
@@ -90,10 +158,10 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(["super_admin", "project_manager"]);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }

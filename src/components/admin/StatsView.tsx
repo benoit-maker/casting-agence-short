@@ -1,12 +1,10 @@
 import { Card } from "@/components/ui/Card";
 import { Tag } from "@/components/ui/Tag";
 import { WeeklyBarChart } from "@/components/admin/WeeklyBarChart";
-
-interface StatEntry {
-  label: string;
-  count: number;
-  pct: number;
-}
+import { BlacklistWeeklyStats, type BlacklistWeekStat } from "@/components/admin/BlacklistWeeklyStats";
+import { ReferralSourceStats } from "@/components/admin/ReferralSourceStats";
+import { PubliciteMonthlyStats, type PubliciteMonthStat } from "@/components/admin/PubliciteMonthlyStats";
+import { StatTable, type StatEntry } from "@/components/admin/StatTable";
 
 interface ProfileEntry {
   sex: "Femme" | "Homme";
@@ -23,39 +21,12 @@ interface StatsViewProps {
   topProfiles: ProfileEntry[];
   rareProfiles: ProfileEntry[];
   referralSources: StatEntry[];
-  weeklyActors: { week: string; count: number }[];
-  weeklyWorked: { week: string; count: number }[];
-}
-
-function ProgressBar({ pct }: { pct: number }) {
-  return (
-    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-      <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
-
-function StatTable({ rows, note }: { rows: StatEntry[]; note?: string }) {
-  const max = Math.max(...rows.map((r) => r.count), 1);
-  return (
-    <div>
-      <div className="space-y-3">
-        {rows.map((row) => (
-          <div key={row.label}>
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="text-sm text-dark">{row.label}</span>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-dark tabular-nums">{row.count}</span>
-                <span className="text-xs text-gray-400 w-9 text-right tabular-nums">{row.pct}%</span>
-              </div>
-            </div>
-            <ProgressBar pct={(row.count / max) * 100} />
-          </div>
-        ))}
-      </div>
-      {note && <p className="text-xs text-gray-400 mt-4 italic">{note}</p>}
-    </div>
-  );
+  publiciteSex: StatEntry[];
+  publiciteAgeRanges: StatEntry[];
+  publiciteMonthly: PubliciteMonthStat[];
+  monthlyActors: { week: string; count: number }[];
+  monthlyWorked: { week: string; count: number }[];
+  monthlyBlacklisted: BlacklistWeekStat[];
 }
 
 function ProfileList({ rows, variant }: { rows: ProfileEntry[]; variant: "top" | "rare" }) {
@@ -86,7 +57,7 @@ function ProfileList({ rows, variant }: { rows: ProfileEntry[]; variant: "top" |
   );
 }
 
-export function StatsView({ total, active, sex, ageRanges, topCities, topProfiles, rareProfiles, referralSources, weeklyActors, weeklyWorked }: StatsViewProps) {
+export function StatsView({ total, active, sex, ageRanges, topCities, topProfiles, rareProfiles, referralSources, publiciteSex, publiciteAgeRanges, publiciteMonthly, monthlyActors, monthlyWorked, monthlyBlacklisted }: StatsViewProps) {
   const inactive = total - active;
   const activityRate = total ? Math.round((active / total) * 100) : 0;
 
@@ -112,22 +83,22 @@ export function StatsView({ total, active, sex, ageRanges, topCities, topProfile
         </Card>
       </div>
 
-      {/* Histogrammes hebdomadaires */}
+      {/* Histogrammes */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {weeklyActors.length > 1 && (
+        {monthlyActors.length > 1 && (
           <Card className="p-6">
             <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-6">
-              Nouvelles inscriptions par semaine
+              Nouvelles inscriptions par mois
             </h2>
-            <WeeklyBarChart data={weeklyActors} color="#665DFF" tooltipLabel="Nouveaux acteurs" />
+            <WeeklyBarChart data={monthlyActors} color="#665DFF" tooltipLabel="Nouveaux acteurs" />
           </Card>
         )}
-        {weeklyWorked.length > 0 && (
+        {monthlyWorked.length > 0 && (
           <Card className="p-6">
             <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-6">
-              Nouveaux acteurs ayant tourné par semaine
+              Nouveaux acteurs ayant tourné par mois
             </h2>
-            <WeeklyBarChart data={weeklyWorked} color="#22c55e" tooltipLabel="Ont tourné" />
+            <WeeklyBarChart data={monthlyWorked} color="#22c55e" tooltipLabel="Ont tourné" />
           </Card>
         )}
       </div>
@@ -152,7 +123,12 @@ export function StatsView({ total, active, sex, ageRanges, topCities, topProfile
         {referralSources.length > 0 && (
           <Card className="p-6">
             <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-5">Source de recrutement</h2>
-            <StatTable rows={referralSources} note="Basé sur les acteurs ayant répondu à la question." />
+            <ReferralSourceStats
+              sources={referralSources}
+              publiciteSex={publiciteSex}
+              publiciteAgeRanges={publiciteAgeRanges}
+              note="Basé sur les acteurs ayant répondu à la question."
+            />
           </Card>
         )}
 
@@ -172,6 +148,26 @@ export function StatsView({ total, active, sex, ageRanges, topCities, topProfile
           </div>
         </Card>
       </div>
+
+      {/* Publicité par mois (sexe + âge) */}
+      {publiciteMonthly.length > 0 && (
+        <Card className="p-6">
+          <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-6">
+            Publicité — nouveaux acteurs par mois
+          </h2>
+          <PubliciteMonthlyStats data={publiciteMonthly} />
+        </Card>
+      )}
+
+      {/* Profils sortis par mois */}
+      {monthlyBlacklisted.length > 0 && (
+        <Card className="p-6">
+          <h2 className="text-xs font-semibold text-dark uppercase tracking-wide mb-6">
+            Profils sortis par mois
+          </h2>
+          <BlacklistWeeklyStats data={monthlyBlacklisted} />
+        </Card>
+      )}
     </div>
   );
 }

@@ -25,6 +25,12 @@
   --color-tag-age-text: #665DFF;
   --color-tag-city-bg: #E8FAF0;
   --color-tag-city-text: #00875A;
+  --color-tag-profile-bg: #FFF3E0;
+  --color-tag-profile-text: #E65100;
+  --color-tag-language-bg: #E0F7FA;
+  --color-tag-language-text: #00838F;
+  --color-tag-experience-bg: #ECFDF5;
+  --color-tag-experience-text: #059669;
 
   /* Fonts */
   --font-heading: 'Rubik', sans-serif;

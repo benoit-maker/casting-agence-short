@@ -4,21 +4,164 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Video, Trash2, X, Eye, CheckCircle2, Circle } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { Search, Trash2, X, Eye, CheckCircle2, Circle, ChevronDown, Ban, Play } from "lucide-react";
 import { Tag } from "@/components/ui/Tag";
+import { VideoModal } from "@/components/client/VideoModal";
 import { CopyActorLinkButton } from "@/components/admin/CopyActorLinkButton";
-import type { Actor } from "@/lib/types";
+import { AGE_RANGES, PROFILE_TYPES, BLACKLIST_REASONS, type Actor, type BlacklistReason, type UserRole } from "@/lib/types";
 
 interface ActorsListProps {
   actors: Actor[];
+  role: UserRole;
 }
 
-export function ActorsList({ actors }: ActorsListProps) {
+function VideoCell({ actor }: { actor: Actor }) {
+  const [showIndex, setShowIndex] = useState<number | null>(null);
+  const allVideos = [
+    ...(actor.video_urls || []),
+    ...(actor.video_url && !(actor.video_urls || []).includes(actor.video_url)
+      ? [actor.video_url]
+      : []),
+  ].filter(Boolean);
+
+  if (allVideos.length === 0) {
+    return <span className="text-gray-400 text-xs">—</span>;
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setShowIndex(0)}
+        className="flex items-center gap-1 text-sm text-primary hover:underline cursor-pointer"
+      >
+        <Play className="w-3.5 h-3.5" />
+        {allVideos.length}
+      </button>
+      {showIndex !== null && (
+        <VideoModal
+          open={true}
+          onClose={() => setShowIndex(null)}
+          videoUrl={allVideos[showIndex]}
+          actorName={actor.display_name || actor.name}
+        />
+      )}
+    </>
+  );
+}
+
+function MultiSelectDropdown({
+  options,
+  selected,
+  onToggle,
+}: {
+  options: readonly string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  return (
+    <details className="relative">
+      <summary
+        className="flex items-center gap-2 px-3 py-1.5 rounded-btn border border-gray-200 bg-white text-sm text-dark cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-primary/30 [&::-webkit-details-marker]:hidden [&::marker]:hidden"
+      >
+        {selected.length === 0
+          ? "Toutes"
+          : `${selected.length} sélectionnée${selected.length > 1 ? "s" : ""}`}
+        <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+      </summary>
+      <div className="absolute z-10 mt-1 min-w-[200px] max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-btn shadow-lg p-2 space-y-0.5">
+        {options.length === 0 ? (
+          <p className="text-xs text-gray-400 px-2 py-1.5">Aucune option disponible</p>
+        ) : (
+          options.map((opt) => (
+            <label
+              key={opt}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-btn hover:bg-gray-100 cursor-pointer text-sm text-dark"
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(opt)}
+                onChange={() => onToggle(opt)}
+                className="cursor-pointer"
+              />
+              {opt}
+            </label>
+          ))
+        )}
+      </div>
+    </details>
+  );
+}
+
+function BlacklistReasonPicker({
+  onConfirm,
+}: {
+  onConfirm: (reason: BlacklistReason, detail: string) => void;
+}) {
+  const [detailsRef, setDetailsRef] = useState<HTMLDetailsElement | null>(null);
+  const [reason, setReason] = useState<BlacklistReason>(BLACKLIST_REASONS[0]);
+  const [detail, setDetail] = useState("");
+
+  function handleConfirm() {
+    if (reason === "Autre" && !detail.trim()) return;
+    onConfirm(reason, detail.trim());
+    setReason(BLACKLIST_REASONS[0]);
+    setDetail("");
+    if (detailsRef) detailsRef.open = false;
+  }
+
+  return (
+    <details ref={setDetailsRef} className="relative">
+      <summary
+        title="Blacklister cet acteur"
+        className="p-1.5 rounded-btn text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden [&::marker]:hidden"
+      >
+        <Ban className="w-4 h-4" />
+      </summary>
+      <div className="absolute z-10 right-0 mt-1 w-64 bg-white border border-gray-200 rounded-btn shadow-lg p-3 space-y-2">
+        <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider">
+          Motif
+        </label>
+        <select
+          value={reason}
+          onChange={(e) => setReason(e.target.value as BlacklistReason)}
+          className="w-full px-3 py-1.5 rounded-btn border border-gray-200 bg-white text-sm text-dark focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all cursor-pointer"
+        >
+          {BLACKLIST_REASONS.map((r) => (
+            <option key={r} value={r}>{r}</option>
+          ))}
+        </select>
+        {reason === "Autre" && (
+          <input
+            type="text"
+            value={detail}
+            onChange={(e) => setDetail(e.target.value)}
+            placeholder="Précisez le motif"
+            className="w-full px-3 py-1.5 rounded-btn border border-gray-200 bg-white text-sm text-dark placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+          />
+        )}
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={reason === "Autre" && !detail.trim()}
+          className="w-full px-3 py-1.5 rounded-btn text-sm font-medium bg-red-500 text-white hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+        >
+          Blacklister
+        </button>
+      </div>
+    </details>
+  );
+}
+
+export function ActorsList({ actors, role }: ActorsListProps) {
+  const isReadOnly = role === "catalogue";
+  const [tab, setTab] = useState<"all" | "blacklisted">("all");
   const [search, setSearch] = useState("");
   const [filterSex, setFilterSex] = useState<"Femme" | "Homme" | null>(null);
+  const [filterProfileType, setFilterProfileType] = useState<string | null>(null);
   const [filterAge, setFilterAge] = useState<string[]>([]);
   const [filterCity, setFilterCity] = useState<string | null>(null);
+  const [filterLanguages, setFilterLanguages] = useState<string[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -26,18 +169,32 @@ export function ActorsList({ actors }: ActorsListProps) {
   const [workedWith, setWorkedWith] = useState<Record<string, boolean>>(
     () => Object.fromEntries(actors.map((a) => [a.id, a.has_worked_with_us]))
   );
+  const [blacklisted, setBlacklisted] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(actors.map((a) => [a.id, a.is_blacklisted]))
+  );
   const router = useRouter();
-  const supabase = createClient();
 
   const allCities = Array.from(new Set(actors.flatMap((a) => a.cities))).sort();
+  const allLanguages = Array.from(new Set(actors.flatMap((a) => a.languages || []))).sort();
 
-  const hasActiveFilters = filterSex !== null || filterAge.length > 0 || filterCity !== null || filterWorked !== null;
+  const hasActiveFilters = filterSex !== null || filterProfileType !== null || filterAge.length > 0 || filterCity !== null || filterLanguages.length > 0 || filterWorked !== null;
 
-  const filtered = actors.filter((actor) => {
-    if (filterSex && actor.sex !== filterSex) return false;
-    if (filterAge.length > 0 && !filterAge.some((r) => actor.age_ranges.includes(r))) return false;
-    if (filterCity && !actor.cities.includes(filterCity)) return false;
-    if (filterWorked !== null && workedWith[actor.id] !== filterWorked) return false;
+  const blacklistedCount = actors.filter((a) => blacklisted[a.id]).length;
+  const nonBlacklistedCount = actors.length - blacklistedCount;
+
+  const baseList = actors.filter((actor) =>
+    tab === "blacklisted" ? blacklisted[actor.id] : !blacklisted[actor.id]
+  );
+
+  const filtered = baseList.filter((actor) => {
+    if (tab === "all") {
+      if (filterSex && actor.sex !== filterSex) return false;
+      if (filterProfileType && actor.profile_type !== filterProfileType) return false;
+      if (filterAge.length > 0 && !filterAge.some((r) => actor.age_ranges.includes(r))) return false;
+      if (filterCity && !actor.cities.includes(filterCity)) return false;
+      if (filterLanguages.length > 0 && !filterLanguages.some((l) => (actor.languages || []).includes(l))) return false;
+      if (filterWorked !== null && workedWith[actor.id] !== filterWorked) return false;
+    }
     if (search) {
       const q = search.toLowerCase();
       return (
@@ -48,6 +205,34 @@ export function ActorsList({ actors }: ActorsListProps) {
     }
     return true;
   });
+
+  async function unblacklistActor(actorId: string) {
+    setBlacklisted((prev) => ({ ...prev, [actorId]: false }));
+    const res = await fetch(`/api/actors/${actorId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_blacklisted: false }),
+    });
+    if (!res.ok) {
+      setBlacklisted((prev) => ({ ...prev, [actorId]: true }));
+    }
+  }
+
+  async function blacklistActor(actorId: string, reason: BlacklistReason, detail: string) {
+    setBlacklisted((prev) => ({ ...prev, [actorId]: true }));
+    const res = await fetch(`/api/actors/${actorId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        is_blacklisted: true,
+        reason,
+        reason_detail: reason === "Autre" ? detail : undefined,
+      }),
+    });
+    if (!res.ok) {
+      setBlacklisted((prev) => ({ ...prev, [actorId]: false }));
+    }
+  }
 
   async function toggleWorkedWith(actorId: string) {
     const current = workedWith[actorId];
@@ -86,7 +271,32 @@ export function ActorsList({ actors }: ActorsListProps) {
           </button>
         </div>
       )}
+
+      {/* Onglets */}
+      {!isReadOnly && (
+        <div className="flex gap-2 mb-6 border-b border-gray-200">
+          {([
+            ["all", `Tous (${nonBlacklistedCount})`],
+            ["blacklisted", `Blacklistés (${blacklistedCount})`],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer ${
+                tab === key
+                  ? "border-primary text-primary"
+                  : "border-transparent text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Filtres */}
+      {tab === "all" && (
       <div className="flex flex-wrap gap-4 mb-4 items-end">
         {/* Sexe */}
         <div className="flex flex-col gap-1">
@@ -109,25 +319,33 @@ export function ActorsList({ actors }: ActorsListProps) {
           </div>
         </div>
 
+        {/* Type de profil */}
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Type de profil</span>
+          <select
+            value={filterProfileType ?? ""}
+            onChange={(e) => setFilterProfileType(e.target.value || null)}
+            className="px-3 py-1.5 rounded-btn border border-gray-200 bg-white text-sm text-dark focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all cursor-pointer"
+          >
+            <option value="">Tous</option>
+            {PROFILE_TYPES.map((pt) => (
+              <option key={pt} value={pt}>{pt}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Âge */}
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Âge</span>
-          <div className="flex gap-1">
-            {["18-25 ans", "25-40 ans", "40-55 ans", "55+"].map((range) => (
-              <button
-                key={range}
-                type="button"
-                onClick={() => setFilterAge(filterAge.includes(range) ? filterAge.filter((r) => r !== range) : [...filterAge, range])}
-                className={`px-3 py-1.5 rounded-btn text-sm font-medium transition-colors cursor-pointer ${
-                  filterAge.includes(range)
-                    ? "bg-primary text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {range}
-              </button>
-            ))}
-          </div>
+          <MultiSelectDropdown
+            options={AGE_RANGES}
+            selected={filterAge}
+            onToggle={(range) =>
+              setFilterAge((prev) =>
+                prev.includes(range) ? prev.filter((r) => r !== range) : [...prev, range]
+              )
+            }
+          />
         </div>
 
         {/* Ville */}
@@ -145,32 +363,39 @@ export function ActorsList({ actors }: ActorsListProps) {
           </select>
         </div>
 
+        {/* Langues */}
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Langues</span>
+          <MultiSelectDropdown
+            options={allLanguages}
+            selected={filterLanguages}
+            onToggle={(lang) =>
+              setFilterLanguages((prev) =>
+                prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
+              )
+            }
+          />
+        </div>
+
         {/* A tourné */}
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Expérience</span>
-          <div className="flex gap-1">
-            {([true, false] as const).map((val) => (
-              <button
-                key={String(val)}
-                type="button"
-                onClick={() => setFilterWorked(filterWorked === val ? null : val)}
-                className={`px-3 py-1.5 rounded-btn text-sm font-medium transition-colors cursor-pointer ${
-                  filterWorked === val
-                    ? "bg-primary text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {val ? "A tourné" : "Jamais tourné"}
-              </button>
-            ))}
-          </div>
+          <select
+            value={filterWorked === null ? "" : String(filterWorked)}
+            onChange={(e) => setFilterWorked(e.target.value === "" ? null : e.target.value === "true")}
+            className="px-3 py-1.5 rounded-btn border border-gray-200 bg-white text-sm text-dark focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all cursor-pointer"
+          >
+            <option value="">Toutes</option>
+            <option value="true">A tourné</option>
+            <option value="false">Jamais tourné</option>
+          </select>
         </div>
 
         {/* Réinitialiser */}
         {hasActiveFilters && (
           <button
             type="button"
-            onClick={() => { setFilterSex(null); setFilterAge([]); setFilterCity(null); setFilterWorked(null); }}
+            onClick={() => { setFilterSex(null); setFilterProfileType(null); setFilterAge([]); setFilterCity(null); setFilterLanguages([]); setFilterWorked(null); }}
             className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-400 hover:text-gray-600 cursor-pointer self-end"
           >
             <X className="w-3.5 h-3.5" />
@@ -178,6 +403,7 @@ export function ActorsList({ actors }: ActorsListProps) {
           </button>
         )}
       </div>
+      )}
 
       {/* Barre de recherche */}
       <div className="relative mb-6">
@@ -204,8 +430,10 @@ export function ActorsList({ actors }: ActorsListProps) {
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Photo</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Nom</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Sexe</th>
+              <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Type de profil</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Âge</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Ville</th>
+              <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Langues</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Vidéo</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Tourné</th>
               <th className="px-6 py-3" />
@@ -239,42 +467,74 @@ export function ActorsList({ actors }: ActorsListProps) {
                   <Tag variant={actor.sex === "Femme" ? "female" : "male"}>{actor.sex}</Tag>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex flex-wrap gap-1">
-                    {actor.age_ranges.map((age) => (
-                      <Tag key={age} variant="age">{age}</Tag>
-                    ))}
-                  </div>
+                  <Tag variant="profile">{actor.profile_type}</Tag>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex flex-wrap gap-1">
-                    {actor.cities.map((city) => (
-                      <Tag key={city} variant="city">{city}</Tag>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  {actor.video_url ? (
-                    <Video className="w-4 h-4 text-primary" />
+                  {actor.age_ranges[0] ? (
+                    <Tag variant="age">{actor.age_ranges[0]}</Tag>
                   ) : (
                     <span className="text-gray-400 text-xs">—</span>
                   )}
                 </td>
                 <td className="px-6 py-4">
-                  <button
-                    type="button"
-                    onClick={() => toggleWorkedWith(actor.id)}
-                    title={workedWith[actor.id] ? "A tourné avec nous — cliquer pour retirer" : "N'a pas encore tourné — cliquer pour confirmer"}
-                    className="cursor-pointer"
-                  >
-                    {workedWith[actor.id] ? (
-                      <CheckCircle2 className="w-5 h-5 text-success" />
+                  {actor.cities[0] ? (
+                    <Tag variant="city">{actor.cities[0]}</Tag>
+                  ) : (
+                    <span className="text-gray-400 text-xs">—</span>
+                  )}
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex flex-wrap gap-1">
+                    {(actor.languages || []).length === 0 ? (
+                      <span className="text-gray-400 text-xs">—</span>
                     ) : (
-                      <Circle className="w-5 h-5 text-gray-300 hover:text-gray-400" />
+                      (actor.languages || []).map((lang) => (
+                        <Tag key={lang} variant="language">{lang}</Tag>
+                      ))
                     )}
-                  </button>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <VideoCell actor={actor} />
+                </td>
+                <td className="px-6 py-4">
+                  {isReadOnly ? (
+                    <Tag variant="experience">
+                      {workedWith[actor.id] ? "A tourné" : "Jamais tourné"}
+                    </Tag>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toggleWorkedWith(actor.id)}
+                      title={workedWith[actor.id] ? "A tourné avec nous — cliquer pour retirer" : "N'a pas encore tourné — cliquer pour confirmer"}
+                      className="cursor-pointer"
+                    >
+                      {workedWith[actor.id] ? (
+                        <CheckCircle2 className="w-5 h-5 text-success" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-gray-300 hover:text-gray-400" />
+                      )}
+                    </button>
+                  )}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
+                    {!isReadOnly && (
+                      blacklisted[actor.id] ? (
+                        <button
+                          type="button"
+                          onClick={() => unblacklistActor(actor.id)}
+                          title="Blacklisté — cliquer pour retirer"
+                          className="p-1.5 rounded-btn text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                        >
+                          <Ban className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <BlacklistReasonPicker
+                          onConfirm={(reason, detail) => blacklistActor(actor.id, reason, detail)}
+                        />
+                      )
+                    )}
                     <a
                       href={`/a/${actor.id}`}
                       target="_blank"
@@ -285,45 +545,53 @@ export function ActorsList({ actors }: ActorsListProps) {
                       <Eye className="w-4 h-4" />
                     </a>
                     <CopyActorLinkButton actorId={actor.id} />
-                    {confirmDelete === actor.id ? (
-                      <div className="flex items-center gap-1">
+                    {!isReadOnly && (
+                      confirmDelete === actor.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleDelete(actor.id)}
+                            disabled={deleting === actor.id}
+                            className="text-xs text-red-500 font-medium hover:text-red-700 cursor-pointer"
+                          >
+                            {deleting === actor.id ? "..." : "Confirmer"}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDelete(null)}
+                            className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      ) : (
                         <button
-                          onClick={() => handleDelete(actor.id)}
-                          disabled={deleting === actor.id}
-                          className="text-xs text-red-500 font-medium hover:text-red-700 cursor-pointer"
+                          onClick={() => setConfirmDelete(actor.id)}
+                          className="p-1.5 rounded-btn text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                          title="Supprimer"
                         >
-                          {deleting === actor.id ? "..." : "Confirmer"}
+                          <Trash2 className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => setConfirmDelete(null)}
-                          className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
-                        >
-                          Annuler
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmDelete(actor.id)}
-                        className="p-1.5 rounded-btn text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      )
                     )}
-                    <Link
-                      href={`/admin/actors/${actor.id}`}
-                      className="text-sm text-primary hover:text-primary-dark font-medium"
-                    >
-                      Modifier
-                    </Link>
+                    {!isReadOnly && (
+                      <Link
+                        href={`/admin/actors/${actor.id}`}
+                        className="text-sm text-primary hover:text-primary-dark font-medium"
+                      >
+                        Modifier
+                      </Link>
+                    )}
                   </div>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
-                  {search || hasActiveFilters ? "Aucun acteur trouvé pour ces critères." : "Aucun acteur pour le moment."}
+                <td colSpan={10} className="px-6 py-12 text-center text-gray-400">
+                  {search || hasActiveFilters
+                    ? "Aucun acteur trouvé pour ces critères."
+                    : tab === "blacklisted"
+                      ? "Aucun acteur blacklisté."
+                      : "Aucun acteur pour le moment."}
                 </td>
               </tr>
             )}

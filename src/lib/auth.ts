@@ -10,10 +10,10 @@ export type AuthResult =
  * Verifies the current user and (optionally) their role.
  * Always uses the admin client to read the role (bypasses RLS to avoid recursion).
  *
- * @param requiredRole - if provided, the user must have this exact role
+ * @param requiredRole - if provided, the user's role must match (or be included in, if an array)
  */
 export async function requireAuth(
-  requiredRole?: UserRole
+  requiredRole?: UserRole | UserRole[]
 ): Promise<AuthResult> {
   const supabase = await createClient();
   const {
@@ -37,8 +37,11 @@ export async function requireAuth(
 
   const role = profile.role as UserRole;
 
-  if (requiredRole && role !== requiredRole) {
-    return { ok: false, status: 403, error: "Accès refusé" };
+  if (requiredRole) {
+    const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    if (!allowedRoles.includes(role)) {
+      return { ok: false, status: 403, error: "Accès refusé" };
+    }
   }
 
   return { ok: true, userId: user.id, role };

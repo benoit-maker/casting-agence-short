@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
 
-const VALID_ROLES = new Set(["super_admin", "project_manager"]);
+const VALID_ROLES = new Set(["super_admin", "project_manager", "catalogue"]);
 
 export async function POST(request: NextRequest) {
   const auth = await requireAuth("super_admin");

@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAllowedPhotoUrl, isAllowedVideoUrl } from "@/lib/auth";
-import { DEFAULT_CITIES } from "@/lib/types";
+import { DEFAULT_CITIES, DEFAULT_LANGUAGES, PROFILE_TYPES } from "@/lib/types";
 
 const NAME_MAX = 100;
 const STR_MAX = 200;
 const URL_MAX = 500;
 const MAX_PHOTOS = 5;
 const MAX_VIDEOS = 3;
+const LANGUAGE_MAX = 50;
+const MAX_LANGUAGES = 10;
 const ALLOWED_CITIES = new Set<string>(DEFAULT_CITIES as readonly string[]);
+const ALLOWED_LANGUAGES = new Set<string>(DEFAULT_LANGUAGES as readonly string[]);
+const ALLOWED_PROFILE_TYPES = new Set<string>(PROFILE_TYPES as readonly string[]);
 const ALLOWED_AVAILABILITY = new Set(["flexible", "weekdays", "weekends"]);
 const ALLOWED_MICRO_STATUS = new Set(["yes", "no", "can_create"]);
 const ALLOWED_REFERRAL_SOURCES = new Set(["facebook", "publicite", "bouche_a_oreille", "recommandation"]);
@@ -41,6 +45,7 @@ export async function POST(request: NextRequest) {
     date_of_birth,
     cities,
     sex,
+    profile_type,
     email,
     phone,
     photo_urls,
@@ -50,6 +55,7 @@ export async function POST(request: NextRequest) {
     portfolio_link,
     micro_entrepreneur_status,
     referral_source,
+    languages,
   } = (body as Record<string, unknown>) ?? {};
 
   if (!isValidString(first_name, NAME_MAX)) {
@@ -60,6 +66,16 @@ export async function POST(request: NextRequest) {
   }
   if (sex !== "Femme" && sex !== "Homme") {
     return NextResponse.json({ error: "Sexe invalide" }, { status: 400 });
+  }
+  if (
+    profile_type !== undefined &&
+    profile_type !== null &&
+    (typeof profile_type !== "string" || !ALLOWED_PROFILE_TYPES.has(profile_type))
+  ) {
+    return NextResponse.json(
+      { error: "Type de profil invalide" },
+      { status: 400 }
+    );
   }
   if (
     !Array.isArray(cities) ||
@@ -92,12 +108,11 @@ export async function POST(request: NextRequest) {
   ) {
     return NextResponse.json({ error: "Email invalide" }, { status: 400 });
   }
-  if (
-    phone !== undefined &&
-    phone !== null &&
-    (typeof phone !== "string" || phone.length > 30)
-  ) {
-    return NextResponse.json({ error: "Téléphone invalide" }, { status: 400 });
+  if (!isValidString(phone, 30)) {
+    return NextResponse.json(
+      { error: "Téléphone invalide ou manquant" },
+      { status: 400 }
+    );
   }
   if (
     photo_urls !== undefined &&
@@ -172,6 +187,19 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+  if (
+    languages !== undefined &&
+    (!Array.isArray(languages) ||
+      languages.length > MAX_LANGUAGES ||
+      languages.some(
+        (l) => typeof l !== "string" || (!ALLOWED_LANGUAGES.has(l) && !isValidString(l, LANGUAGE_MAX))
+      ))
+  ) {
+    return NextResponse.json(
+      { error: "Langue(s) invalide(s)" },
+      { status: 400 }
+    );
+  }
 
   const admin = createAdminClient();
 
@@ -182,8 +210,9 @@ export async function POST(request: NextRequest) {
     city: (cities as string[])[0],
     cities,
     sex,
+    ...(typeof profile_type === "string" ? { profile_type } : {}),
     email: email || null,
-    phone: phone || null,
+    phone,
     photo_urls: photo_urls || [],
     video_urls: video_urls || [],
     availability,
@@ -191,6 +220,7 @@ export async function POST(request: NextRequest) {
     portfolio_link: portfolio_link || null,
     micro_entrepreneur_status,
     referral_source: referral_source || null,
+    languages: languages || [],
   });
 
   if (error) {

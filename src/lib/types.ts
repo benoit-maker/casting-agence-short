@@ -1,4 +1,4 @@
-export type UserRole = "super_admin" | "project_manager";
+export type UserRole = "super_admin" | "project_manager" | "catalogue";
 
 export interface Profile {
   id: string;
@@ -10,6 +10,12 @@ export interface Profile {
 
 export type Availability = "flexible" | "weekdays" | "weekends";
 export type MicroEntrepreneurStatus = "yes" | "no" | "can_create";
+
+export const PROFILE_TYPES = ["Créateur / Créatrice UGC", "Acteur / Actrice", "Les deux"] as const;
+export type ProfileType = typeof PROFILE_TYPES[number];
+
+export const BLACKLIST_REASONS = ["Indisponible", "Inactif", "Mauvais acting", "Mauvais comportement", "Autre"] as const;
+export type BlacklistReason = typeof BLACKLIST_REASONS[number];
 
 export const AVAILABILITY_LABELS: Record<Availability, string> = {
   flexible: "Flexible / À mon compte",
@@ -28,6 +34,7 @@ export interface Actor {
   name: string;
   display_name: string | null;
   sex: "Femme" | "Homme";
+  profile_type: ProfileType;
   age_ranges: string[];
   cities: string[];
   phone: string | null;
@@ -39,10 +46,12 @@ export interface Actor {
   notes: string;
   notion_id: string | null;
   is_active: boolean;
+  is_blacklisted: boolean;
   availability: Availability[];
   accepts_rate: boolean | null;
   portfolio_link: string | null;
   micro_entrepreneur_status: MicroEntrepreneurStatus | null;
+  languages: string[];
   date_of_birth: string | null;
   has_worked_with_us: boolean;
   referral_source: string | null;
@@ -76,6 +85,7 @@ export interface PublicActor {
   id: string;
   display_name: string;
   sex: "Femme" | "Homme";
+  profile_type: ProfileType;
   age_ranges: string[];
   cities: string[];
   photo_url: string | null;
@@ -106,9 +116,17 @@ export const REFERRAL_SOURCE_LABELS: Record<string, string> = {
   recommandation:   "La recommandation d'une connaissance",
 };
 
-export const AGE_RANGES = ["18-25 ans", "25-40 ans", "40-55 ans", "55+"] as const;
+export const AGE_RANGES = ["Moins de 18 ans", "18-25 ans", "25-40 ans", "40-55 ans", "55+"] as const;
+
+export const DEFAULT_LANGUAGES = ["Français", "Espagnol", "Anglais"] as const;
 
 export const DEFAULT_CITIES = [
-  "Paris", "Bordeaux", "Lyon", "Marseille", "Toulouse",
-  "Nantes", "Lille", "Strasbourg", "Dax", "Bayonne",
+  "Paris", "Marseille", "Lyon", "Toulouse", "Nice",
+  "Nantes", "Montpellier", "Strasbourg", "Bordeaux", "Lille",
+] as const;
+
+export const RATE_OPTIONS = [
+  "30€ vidéos solo / 25€ vidéos duo",
+  "40€ vidéos solo / 35€ vidéos duo",
+  "50€ vidéos solo / 45€ vidéos duo",
 ] as const;

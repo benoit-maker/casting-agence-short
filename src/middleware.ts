@@ -1,5 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+const CATALOGUE_ALLOWED_PATH = "/admin/actors";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -13,7 +16,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({ request });
@@ -44,6 +47,36 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/admin";
     return NextResponse.redirect(url);
+  }
+
+  // Role-based access to admin sub-routes
+  if (isAdminRoute && user) {
+    const admin = createAdminClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    // Catalogue role: read-only access to the Acteurs list page only
+    if (
+      profile?.role === "catalogue" &&
+      request.nextUrl.pathname !== CATALOGUE_ALLOWED_PATH
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = CATALOGUE_ALLOWED_PATH;
+      return NextResponse.redirect(url);
+    }
+
+    // Settings page: super_admin only
+    if (
+      request.nextUrl.pathname.startsWith("/admin/settings") &&
+      profile?.role !== "super_admin"
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

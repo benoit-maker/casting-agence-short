@@ -14,9 +14,10 @@ interface WeeklyBarChartProps {
   data: { week: string; count: number }[];
   color?: string;
   tooltipLabel?: string;
+  onBarClick?: (index: number) => void;
 }
 
-export function WeeklyBarChart({ data, color = "#665DFF", tooltipLabel = "Acteurs" }: WeeklyBarChartProps) {
+export function WeeklyBarChart({ data, color = "#665DFF", tooltipLabel = "Acteurs", onBarClick }: WeeklyBarChartProps) {
   return (
     <ResponsiveContainer width="100%" height={260}>
       <BarChart data={data} margin={{ top: 5, right: 16, left: -10, bottom: 5 }}>
@@ -38,7 +39,13 @@ export function WeeklyBarChart({ data, color = "#665DFF", tooltipLabel = "Acteur
           contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: 13 }}
           formatter={(value) => [value ?? 0, tooltipLabel]}
         />
-        <Bar dataKey="count" fill={color} radius={[4, 4, 0, 0]} />
+        <Bar
+          dataKey="count"
+          fill={color}
+          radius={[4, 4, 0, 0]}
+          onClick={onBarClick ? (_data, index) => onBarClick(index) : undefined}
+          cursor={onBarClick ? "pointer" : undefined}
+        />
       </BarChart>
     </ResponsiveContainer>
   );

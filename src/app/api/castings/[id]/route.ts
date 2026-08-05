@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
+import type { UserRole } from "@/lib/types";
+
+const MANAGER_ROLES: UserRole[] = ["super_admin", "project_manager"];
 
 /**
  * Vérifie que l'utilisateur est PM propriétaire ou super_admin pour ce casting.
@@ -8,7 +11,7 @@ import { requireAuth } from "@/lib/auth";
 async function canManageCasting(
   castingId: string,
   userId: string,
-  role: "super_admin" | "project_manager"
+  role: UserRole
 ): Promise<boolean> {
   if (role === "super_admin") return true;
   const admin = createAdminClient();
@@ -24,7 +27,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(MANAGER_ROLES);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -75,7 +78,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(MANAGER_ROLES);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -156,10 +159,10 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(MANAGER_ROLES);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }

@@ -38,6 +38,19 @@ export function generateDisplayName(fullName: string): string {
   return `${parts[0]} ${parts[parts.length - 1][0]}.`;
 }
 
+export function computeAgeRanges(dateOfBirth: string | null | undefined): string[] {
+  if (!dateOfBirth) return [];
+  const birthDate = new Date(dateOfBirth);
+  const age = Math.floor(
+    (Date.now() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+  );
+  if (age < 18) return ["Moins de 18 ans"];
+  if (age < 25) return ["18-25 ans"];
+  if (age < 40) return ["25-40 ans"];
+  if (age < 55) return ["40-55 ans"];
+  return ["55+"];
+}
+
 export function getCastingUrl(slug: string): string {
   const base = process.env.NEXT_PUBLIC_APP_URL || "https://casting.agenceshort.fr";
   return `${base}/c/${slug}`;

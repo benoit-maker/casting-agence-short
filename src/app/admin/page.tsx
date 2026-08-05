@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Copy, Eye, Users } from "lucide-react";
+import { Plus, Eye, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Button } from "@/components/ui/Button";
@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
 import { InlineCastingName } from "@/components/admin/InlineCastingName";
-import type { Casting } from "@/lib/types";
 
 export default async function AdminDashboard() {
   const supabase = await createClient();

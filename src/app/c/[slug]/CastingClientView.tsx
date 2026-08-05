@@ -7,10 +7,9 @@ import type { PublicCasting, PublicActor } from "@/lib/types";
 
 interface CastingClientViewProps {
   casting: PublicCasting;
-  slug: string;
 }
 
-export function CastingClientView({ casting, slug }: CastingClientViewProps) {
+export function CastingClientView({ casting }: CastingClientViewProps) {
   return (
     <AuroraBackground className="min-h-screen !items-start !justify-start">
       {/* Header sticky */}

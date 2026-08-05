@@ -77,6 +77,7 @@ interface Application {
   city: string;
   cities: string[] | null;
   sex: "Femme" | "Homme";
+  profile_type: string;
   email: string | null;
   phone: string | null;
   photo_urls: string[];
@@ -88,6 +89,7 @@ interface Application {
   portfolio_link: string | null;
   micro_entrepreneur_status: MicroEntrepreneurStatus | null;
   referral_source: string | null;
+  languages: string[] | null;
 }
 
 export default function ApplicationsPage() {
@@ -382,6 +384,10 @@ export default function ApplicationsPage() {
                             <span className="text-gray-500">Sexe</span>
                             <span className="font-medium text-dark">{app.sex}</span>
                           </div>
+                          <div className="flex justify-between gap-4">
+                            <span className="text-gray-500">Type de profil</span>
+                            <span className="font-medium text-dark text-right">{app.profile_type}</span>
+                          </div>
                           {app.date_of_birth && (
                             <div className="flex justify-between">
                               <span className="text-gray-500">Date de naissance</span>
@@ -463,6 +469,14 @@ export default function ApplicationsPage() {
                               >
                                 {app.portfolio_link}
                               </a>
+                            </div>
+                          )}
+                          {app.languages && app.languages.length > 0 && (
+                            <div className="flex justify-between gap-4">
+                              <span className="text-gray-500">Langues</span>
+                              <span className="font-medium text-dark text-right">
+                                {app.languages.join(", ")}
+                              </span>
                             </div>
                           )}
                         </div>

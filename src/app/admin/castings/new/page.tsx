@@ -26,6 +26,7 @@ export default function NewCastingPage() {
         .from("actors")
         .select("*")
         .eq("is_active", true)
+        .eq("is_blacklisted", false)
         .order("name");
       setActors((data as Actor[]) || []);
       setLoadingActors(false);

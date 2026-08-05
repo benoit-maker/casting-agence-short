@@ -33,5 +33,5 @@ export default async function CastingPage({
 
   const casting = data as unknown as PublicCasting;
 
-  return <CastingClientView casting={casting} slug={slug} />;
+  return <CastingClientView casting={casting} />;
 }

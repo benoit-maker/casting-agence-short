@@ -4,7 +4,7 @@ import { generateSlug } from "@/lib/utils";
 import { requireAuth } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(["super_admin", "project_manager"]);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }

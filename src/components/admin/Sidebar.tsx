@@ -39,7 +39,10 @@ export function Sidebar({ profile }: SidebarProps) {
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item) => {
+        {(profile.role === "catalogue"
+          ? navItems.filter((item) => item.href === "/admin/actors")
+          : navItems
+        ).map((item) => {
           const isActive =
             item.href === "/admin"
               ? pathname === "/admin"

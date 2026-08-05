@@ -1,42 +1,81 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { StatsView } from "@/components/admin/StatsView";
-import { REFERRAL_SOURCE_LABELS } from "@/lib/types";
+import { AGE_RANGES, DEFAULT_CITIES, REFERRAL_SOURCE_LABELS } from "@/lib/types";
 import type { Actor } from "@/lib/types";
+import type { BlacklistWeekStat } from "@/components/admin/BlacklistWeeklyStats";
+import type { PubliciteMonthStat } from "@/components/admin/PubliciteMonthlyStats";
 
-const AGE_RANGES = ["18-25 ans", "25-40 ans", "40-55 ans", "55+"];
 const SEXES = ["Femme", "Homme"] as const;
 
-function getWeekKey(dateStr: string): string {
+function getMonthKey(dateStr: string): string {
   const date = new Date(dateStr);
-  const day = date.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  date.setDate(date.getDate() + diff);
-  date.setHours(0, 0, 0, 0);
-  return date.toISOString().slice(0, 10);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-function formatWeekLabel(isoDate: string): string {
+function formatMonthLabel(isoDate: string): string {
   const date = new Date(isoDate + "T00:00:00");
-  return date.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+  const label = date.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function groupByWeek(dates: string[]): { week: string; count: number }[] {
+function groupByMonth(dates: string[]): { week: string; count: number }[] {
   const map: Record<string, number> = {};
   for (const d of dates) {
-    const key = getWeekKey(d);
+    const key = getMonthKey(d);
     map[key] = (map[key] || 0) + 1;
   }
   return Object.entries(map)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, count]) => ({ week: formatWeekLabel(key), count }));
+    .map(([key, count]) => ({ week: formatMonthLabel(key), count }));
+}
+
+function groupByMonthSexAge(actors: Actor[]): PubliciteMonthStat[] {
+  const map: Record<string, Actor[]> = {};
+  for (const actor of actors) {
+    const key = getMonthKey(actor.created_at);
+    if (!map[key]) map[key] = [];
+    map[key].push(actor);
+  }
+  return Object.entries(map)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, monthActors]) => {
+      const femmes = monthActors.filter((a) => a.sex === "Femme").length;
+      const hommes = monthActors.filter((a) => a.sex === "Homme").length;
+      const monthTotal = monthActors.length;
+      const ageRanges = AGE_RANGES.map((range) => {
+        const count = monthActors.filter((a) => a.age_ranges.includes(range)).length;
+        return { label: range, count, pct: monthTotal ? Math.round((count / monthTotal) * 100) : 0 };
+      });
+      return { week: formatMonthLabel(key), femmes, hommes, count: monthTotal, ageRanges };
+    });
+}
+
+function groupByMonthWithEntries(
+  items: { date: string; name: string; reason: string; reasonDetail: string | null }[]
+): BlacklistWeekStat[] {
+  const map: Record<string, BlacklistWeekStat> = {};
+  for (const item of items) {
+    const key = getMonthKey(item.date);
+    if (!map[key]) {
+      map[key] = { week: formatMonthLabel(key), count: 0, entries: [] };
+    }
+    map[key].count++;
+    map[key].entries.push({ name: item.name, reason: item.reason, reasonDetail: item.reasonDetail });
+  }
+  return Object.entries(map)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, value]) => value);
 }
 
 export default async function StatsPage() {
   const supabase = createAdminClient();
 
-  const [{ data: actorsData }, { data: historyData }] = await Promise.all([
+  const [{ data: actorsData }, { data: historyData }, { data: blacklistData }] = await Promise.all([
     supabase.from("actors").select("*"),
     supabase.from("worked_with_us_history").select("marked_at"),
+    supabase
+      .from("blacklist_history")
+      .select("blacklisted_at, reason, reason_detail, actors(name, display_name)"),
   ]);
 
   const actors = (actorsData as Actor[]) || [];
@@ -54,12 +93,10 @@ export default async function StatsPage() {
     return { label: range, count, pct: total ? Math.round((count / total) * 100) : 0 };
   });
 
-  const cityCounts: Record<string, number> = {};
-  actors.forEach((a) => a.cities.forEach((c) => { cityCounts[c] = (cityCounts[c] || 0) + 1; }));
-  const topCities = Object.entries(cityCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([label, count]) => ({ label, count, pct: total ? Math.round((count / total) * 100) : 0 }));
+  const topCities = DEFAULT_CITIES.map((city) => {
+    const count = actors.filter((a) => a.cities.includes(city)).length;
+    return { label: city, count, pct: total ? Math.round((count / total) * 100) : 0 };
+  }).sort((a, b) => b.count - a.count);
 
   const allProfiles = SEXES.flatMap((s) =>
     AGE_RANGES.map((range) => ({
@@ -76,8 +113,34 @@ export default async function StatsPage() {
     return { label, count, pct: total ? Math.round((count / total) * 100) : 0 };
   }).filter((r) => r.count > 0);
 
-  const weeklyActors = groupByWeek(actors.map((a) => a.created_at));
-  const weeklyWorked = groupByWeek((historyData || []).map((h: { marked_at: string }) => h.marked_at));
+  const publiciteActors = actors.filter((a) => a.referral_source === "publicite");
+  const publiciteTotal = publiciteActors.length;
+  const publiciteSex = [
+    { label: "Femmes", count: publiciteActors.filter((a) => a.sex === "Femme").length },
+    { label: "Hommes", count: publiciteActors.filter((a) => a.sex === "Homme").length },
+  ].map((d) => ({ ...d, pct: publiciteTotal ? Math.round((d.count / publiciteTotal) * 100) : 0 }));
+  const publiciteAgeRanges = AGE_RANGES.map((range) => {
+    const count = publiciteActors.filter((a) => a.age_ranges.includes(range)).length;
+    return { label: range, count, pct: publiciteTotal ? Math.round((count / publiciteTotal) * 100) : 0 };
+  });
+  const publiciteMonthly = groupByMonthSexAge(publiciteActors);
+
+  const monthlyActors = groupByMonth(actors.map((a) => a.created_at));
+  const monthlyWorked = groupByMonth((historyData || []).map((h: { marked_at: string }) => h.marked_at));
+
+  const monthlyBlacklisted = groupByMonthWithEntries(
+    ((blacklistData as unknown as {
+      blacklisted_at: string;
+      reason: string;
+      reason_detail: string | null;
+      actors: { name: string; display_name: string | null } | null;
+    }[]) || []).map((b) => ({
+      date: b.blacklisted_at,
+      name: b.actors?.display_name || b.actors?.name || "Acteur supprimé",
+      reason: b.reason,
+      reasonDetail: b.reason_detail,
+    }))
+  );
 
   return (
     <div>
@@ -94,8 +157,12 @@ export default async function StatsPage() {
         topProfiles={topProfiles}
         rareProfiles={rareProfiles}
         referralSources={referralSources}
-        weeklyActors={weeklyActors}
-        weeklyWorked={weeklyWorked}
+        publiciteSex={publiciteSex}
+        publiciteAgeRanges={publiciteAgeRanges}
+        publiciteMonthly={publiciteMonthly}
+        monthlyActors={monthlyActors}
+        monthlyWorked={monthlyWorked}
+        monthlyBlacklisted={monthlyBlacklisted}
       />
     </div>
   );

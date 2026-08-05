@@ -63,6 +63,7 @@ export function ActorCard({ actor }: ActorCardProps) {
             <Tag variant={actor.sex === "Femme" ? "female" : "male"}>
               {actor.sex}
             </Tag>
+            <Tag variant="profile">{actor.profile_type}</Tag>
             {actor.age_ranges.map((age) => (
               <Tag key={age} variant="age">{age}</Tag>
             ))}
@@ -74,7 +75,7 @@ export function ActorCard({ actor }: ActorCardProps) {
           {/* Vidéos */}
           {hasVideos && (
             <div className="space-y-2">
-              {allVideos.map((url, i) => (
+              {allVideos.map((_url, i) => (
                 <button
                   key={i}
                   onClick={() => setShowVideoIndex(i)}
