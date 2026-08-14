@@ -74,6 +74,7 @@ interface Application {
   first_name: string;
   last_name: string;
   date_of_birth: string | null;
+  age_range: string | null;
   city: string;
   cities: string[] | null;
   sex: "Femme" | "Homme";
@@ -90,6 +91,7 @@ interface Application {
   micro_entrepreneur_status: MicroEntrepreneurStatus | null;
   referral_source: string | null;
   languages: string[] | null;
+  origin: "fr" | "uae" | null;
 }
 
 export default function ApplicationsPage() {
@@ -157,13 +159,21 @@ export default function ApplicationsPage() {
 
   const pendingCount = applications.filter((a) => a.status === "pending").length;
   const [copied, setCopied] = useState(false);
+  const [copiedUae, setCopiedUae] = useState(false);
 
   function copyApplicationLink() {
     const base = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-    const url = `${base}/inscription`;
-    navigator.clipboard.writeText(url).then(() => {
+    navigator.clipboard.writeText(`${base}/inscription`).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function copyUaeApplicationLink() {
+    const base = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    navigator.clipboard.writeText(`${base}/inscription-uae`).then(() => {
+      setCopiedUae(true);
+      setTimeout(() => setCopiedUae(false), 2000);
     });
   }
 
@@ -180,28 +190,52 @@ export default function ApplicationsPage() {
             </p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={copyApplicationLink}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer",
-            copied
-              ? "bg-green-100 text-green-700"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          )}
-        >
-          {copied ? (
-            <>
-              <CheckCheck className="w-4 h-4" />
-              Lien copié !
-            </>
-          ) : (
-            <>
-              <Copy className="w-4 h-4" />
-              Copier le lien de candidature
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={copyApplicationLink}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer",
+              copied
+                ? "bg-green-100 text-green-700"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            )}
+          >
+            {copied ? (
+              <>
+                <CheckCheck className="w-4 h-4" />
+                Lien copié !
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                Copier le lien de candidature
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={copyUaeApplicationLink}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer",
+              copiedUae
+                ? "bg-green-100 text-green-700"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            )}
+          >
+            {copiedUae ? (
+              <>
+                <CheckCheck className="w-4 h-4" />
+                Link copied!
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                Copy UAE application link
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Erreur acceptation */}
@@ -322,6 +356,11 @@ export default function ApplicationsPage() {
                         {app.referral_source && REFERRAL_SOURCE_LABELS[app.referral_source] && (
                           <span className="px-2 py-0.5 rounded-pill bg-gray-100 text-gray-500 text-xs">
                             {REFERRAL_SOURCE_LABELS[app.referral_source]}
+                          </span>
+                        )}
+                        {app.origin === "uae" && (
+                          <span className="px-2 py-0.5 rounded-pill bg-blue-50 text-blue-600 text-xs font-medium">
+                            🇦🇪 UAE
                           </span>
                         )}
                       </div>

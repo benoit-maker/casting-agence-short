@@ -130,3 +130,33 @@ export const RATE_OPTIONS = [
   "40€ vidéos solo / 35€ vidéos duo",
   "50€ vidéos solo / 45€ vidéos duo",
 ] as const;
+
+export const UAE_CITIES = [
+  "Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah", "Fujairah", "Umm Al Quwain",
+] as const;
+
+export const UAE_AVAILABILITY_LABELS: Record<Availability, string> = {
+  flexible: "Flexible / Self-employed",
+  weekdays: "Weekdays only",
+  weekends: "Weekends only",
+};
+
+export const UAE_MICRO_STATUS_LABELS: Record<MicroEntrepreneurStatus, string> = {
+  yes:        "Yes, I have a freelance / employment visa",
+  no:         "No, I don't have the appropriate visa",
+  can_create: "No, but I can obtain one if needed",
+};
+
+export const UAE_REFERRAL_SOURCE_LABELS: Record<string, string> = {
+  facebook:         "A Facebook group",
+  publicite:        "An advertisement",
+  bouche_a_oreille: "Word of mouth",
+  recommandation:   "A personal recommendation",
+};
+
+export const UAE_AGE_RANGE_LABELS: Record<string, string> = {
+  "18-25 ans": "18-25 years",
+  "25-40 ans": "25-40 years",
+  "40-55 ans": "40-55 years",
+  "55+":       "55+",
+};

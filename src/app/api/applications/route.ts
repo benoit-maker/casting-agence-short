@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAllowedPhotoUrl, isAllowedVideoUrl } from "@/lib/auth";
-import { DEFAULT_CITIES, DEFAULT_LANGUAGES, PROFILE_TYPES } from "@/lib/types";
+import { DEFAULT_CITIES, DEFAULT_LANGUAGES, PROFILE_TYPES, UAE_CITIES, AGE_RANGES } from "@/lib/types";
 
 const NAME_MAX = 100;
 const STR_MAX = 200;
@@ -10,9 +10,13 @@ const MAX_PHOTOS = 5;
 const MAX_VIDEOS = 3;
 const LANGUAGE_MAX = 50;
 const MAX_LANGUAGES = 10;
-const ALLOWED_CITIES = new Set<string>(DEFAULT_CITIES as readonly string[]);
+const ALLOWED_CITIES = new Set<string>([
+  ...(DEFAULT_CITIES as readonly string[]),
+  ...(UAE_CITIES as readonly string[]),
+]);
 const ALLOWED_LANGUAGES = new Set<string>(DEFAULT_LANGUAGES as readonly string[]);
 const ALLOWED_PROFILE_TYPES = new Set<string>(PROFILE_TYPES as readonly string[]);
+const ALLOWED_AGE_RANGES = new Set<string>(AGE_RANGES as readonly string[]);
 const ALLOWED_AVAILABILITY = new Set(["flexible", "weekdays", "weekends"]);
 const ALLOWED_MICRO_STATUS = new Set(["yes", "no", "can_create"]);
 const ALLOWED_REFERRAL_SOURCES = new Set(["facebook", "publicite", "bouche_a_oreille", "recommandation"]);
@@ -43,6 +47,7 @@ export async function POST(request: NextRequest) {
     first_name,
     last_name,
     date_of_birth,
+    age_range,
     cities,
     sex,
     profile_type,
@@ -56,6 +61,7 @@ export async function POST(request: NextRequest) {
     micro_entrepreneur_status,
     referral_source,
     languages,
+    origin,
   } = (body as Record<string, unknown>) ?? {};
 
   if (!isValidString(first_name, NAME_MAX)) {
@@ -200,6 +206,20 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+  if (
+    age_range !== null &&
+    age_range !== undefined &&
+    (typeof age_range !== "string" || !ALLOWED_AGE_RANGES.has(age_range))
+  ) {
+    return NextResponse.json({ error: "age_range invalide" }, { status: 400 });
+  }
+  if (
+    origin !== null &&
+    origin !== undefined &&
+    (typeof origin !== "string" || !["fr", "uae"].includes(origin))
+  ) {
+    return NextResponse.json({ error: "origin invalide" }, { status: 400 });
+  }
 
   const admin = createAdminClient();
 
@@ -207,6 +227,7 @@ export async function POST(request: NextRequest) {
     first_name,
     last_name,
     date_of_birth: date_of_birth || null,
+    age_range: age_range || null,
     city: (cities as string[])[0],
     cities,
     sex,
@@ -221,6 +242,7 @@ export async function POST(request: NextRequest) {
     micro_entrepreneur_status,
     referral_source: referral_source || null,
     languages: languages || [],
+    origin: (origin as string) || "fr",
   });
 
   if (error) {
