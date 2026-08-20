@@ -6,7 +6,7 @@ import { Play } from "lucide-react";
 import { Tag } from "@/components/ui/Tag";
 import { VideoModal } from "./VideoModal";
 import { cn } from "@/lib/utils";
-import type { PublicActor } from "@/lib/types";
+import { PROFILE_TYPE_EMOJIS, type PublicActor } from "@/lib/types";
 
 interface ActorCardProps {
   actor: PublicActor;
@@ -63,7 +63,9 @@ export function ActorCard({ actor }: ActorCardProps) {
             <Tag variant={actor.sex === "Femme" ? "female" : "male"}>
               {actor.sex}
             </Tag>
-            <Tag variant="profile">{actor.profile_type}</Tag>
+            {actor.profile_types.map((pt) => (
+              <Tag key={pt} variant="profile">{PROFILE_TYPE_EMOJIS[pt]} {pt}</Tag>
+            ))}
             {actor.age_ranges.map((age) => (
               <Tag key={age} variant="age">{age}</Tag>
             ))}

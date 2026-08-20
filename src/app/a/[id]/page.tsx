@@ -2,6 +2,7 @@ import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Logo } from "@/components/ui/Logo";
 import { Tag } from "@/components/ui/Tag";
+import { PROFILE_TYPE_EMOJIS, type ProfileType } from "@/lib/types";
 import { ActorVideoPlayer } from "./ActorVideoPlayer";
 
 export default async function ActorPublicPage({
@@ -14,7 +15,7 @@ export default async function ActorPublicPage({
 
   const { data: actor } = await supabase
     .from("actors")
-    .select("id, display_name, sex, profile_type, age_ranges, cities, languages, photo_url, video_url, video_urls, is_blacklisted")
+    .select("id, display_name, sex, profile_types, age_ranges, cities, languages, photo_url, video_url, video_urls, is_blacklisted")
     .eq("id", id)
     .single();
 
@@ -33,6 +34,9 @@ export default async function ActorPublicPage({
   }
 
   const displayName = actor.display_name || "Acteur";
+  const publicProfileTypes = ((actor.profile_types as ProfileType[] | null) ?? []).filter(
+    (pt) => pt !== "Whitelisting"
+  );
 
   return (
     <div className="min-h-screen bg-bg">
@@ -71,7 +75,9 @@ export default async function ActorPublicPage({
               <Tag variant={actor.sex === "Femme" ? "female" : "male"}>
                 {actor.sex}
               </Tag>
-              <Tag variant="profile">{actor.profile_type}</Tag>
+              {publicProfileTypes.map((pt) => (
+                <Tag key={pt} variant="profile">{PROFILE_TYPE_EMOJIS[pt]} {pt}</Tag>
+              ))}
               {(actor.age_ranges as string[]).map((age: string) => (
                 <Tag key={age} variant="age">{age}</Tag>
               ))}

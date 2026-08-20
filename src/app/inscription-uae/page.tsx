@@ -13,7 +13,6 @@ import {
   UAE_MICRO_STATUS_LABELS,
   UAE_REFERRAL_SOURCE_LABELS,
   UAE_AGE_RANGE_LABELS,
-  AGE_RANGES,
   type Availability,
   type MicroEntrepreneurStatus,
 } from "@/lib/types";
@@ -103,7 +102,7 @@ export default function InscriptionUAEPage() {
       return;
     }
     if (acceptsRate === null) {
-      alert("Please specify whether you accept the 900 AED gross/day rate.");
+      alert("Please specify whether you accept the AED 650–1,300 gross/day rate.");
       return;
     }
     if (microStatus === null) {
@@ -269,7 +268,7 @@ export default function InscriptionUAEPage() {
                 Age range
               </label>
               <div className="flex flex-wrap gap-2">
-                {AGE_RANGES.map((range) => {
+                {Object.keys(UAE_AGE_RANGE_LABELS).map((range) => {
                   const selected = ageRange === range;
                   return (
                     <button
@@ -406,7 +405,7 @@ export default function InscriptionUAEPage() {
 
             <div>
               <label className="block text-sm font-medium text-dark mb-2">
-                Are you willing to work for a base rate of 900 AED gross/day maximum? *
+                Are you willing to work for a rate between AED 650 and AED 1,300 gross/day (depending on the project, format, and duration)? *
               </label>
               <div className="flex gap-3">
                 {(

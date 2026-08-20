@@ -55,3 +55,20 @@ export function getCastingUrl(slug: string): string {
   const base = process.env.NEXT_PUBLIC_APP_URL || "https://casting.agenceshort.fr";
   return `${base}/c/${slug}`;
 }
+
+const LANGUAGE_ABBREVIATIONS: Record<string, string> = {
+  "Français": "FR",
+  "Anglais": "EN",
+  "Espagnol": "ES",
+  "Italien": "IT",
+  "Allemand": "DE",
+  "Portugais": "PT",
+  "Arabe": "AR",
+  "Néerlandais": "NL",
+  "Russe": "RU",
+  "Chinois": "ZH",
+};
+
+export function abbreviateLanguage(language: string): string {
+  return LANGUAGE_ABBREVIATIONS[language] || language.slice(0, 3).toUpperCase();
+}

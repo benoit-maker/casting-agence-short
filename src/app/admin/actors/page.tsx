@@ -13,6 +13,28 @@ export default async function ActorsPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
+  const blacklistedIds = (actors || [])
+    .filter((a) => a.is_blacklisted)
+    .map((a) => a.id);
+
+  const latestBlacklistReasons: Record<string, { reason: string; reason_detail: string | null }> = {};
+  if (blacklistedIds.length > 0) {
+    const { data: history } = await supabase
+      .from("blacklist_history")
+      .select("actor_id, reason, reason_detail")
+      .in("actor_id", blacklistedIds)
+      .order("blacklisted_at", { ascending: false });
+
+    for (const entry of history || []) {
+      if (!(entry.actor_id in latestBlacklistReasons)) {
+        latestBlacklistReasons[entry.actor_id] = {
+          reason: entry.reason,
+          reason_detail: entry.reason_detail,
+        };
+      }
+    }
+  }
+
   const userSupabase = await createClient();
   const {
     data: { user },
@@ -40,7 +62,11 @@ export default async function ActorsPage() {
         )}
       </div>
 
-      <ActorsList actors={(actors as Actor[]) || []} role={role} />
+      <ActorsList
+        actors={(actors as Actor[]) || []}
+        role={role}
+        latestBlacklistReasons={latestBlacklistReasons}
+      />
     </div>
   );
 }

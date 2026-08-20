@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       name: fullName,
       display_name: generateDisplayName(fullName),
       sex: app.sex,
-      profile_type: app.profile_type,
+      profile_types: app.profile_types,
       age_ranges: ageRanges,
       cities:
         app.cities && app.cities.length > 0

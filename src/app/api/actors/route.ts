@@ -7,16 +7,19 @@ import {
   isAllowedVideoUrl,
 } from "@/lib/auth";
 import { computeAgeRanges } from "@/lib/utils";
-import { PROFILE_TYPES } from "@/lib/types";
+import { PROFILE_TYPES, DEFAULT_LANGUAGES } from "@/lib/types";
 
 const ALLOWED_PROFILE_TYPES = new Set<string>(PROFILE_TYPES as readonly string[]);
+const ALLOWED_LANGUAGES = new Set<string>(DEFAULT_LANGUAGES as readonly string[]);
+const LANGUAGE_MAX = 50;
+const MAX_LANGUAGES = 10;
 
 // Champs autorisés (whitelist anti-mass-assignment)
 const ALLOWED_FIELDS = [
   "name",
   "display_name",
   "sex",
-  "profile_type",
+  "profile_types",
   "cities",
   "phone",
   "rate",
@@ -29,6 +32,7 @@ const ALLOWED_FIELDS = [
   "is_blacklisted",
   "has_worked_with_us",
   "date_of_birth",
+  "languages",
 ] as const;
 
 export async function POST(request: NextRequest) {
@@ -51,10 +55,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Sexe invalide" }, { status: 400 });
   }
   if (
-    data.profile_type !== undefined &&
-    (typeof data.profile_type !== "string" || !ALLOWED_PROFILE_TYPES.has(data.profile_type))
+    !Array.isArray(data.profile_types) ||
+    data.profile_types.length === 0 ||
+    data.profile_types.some((pt) => typeof pt !== "string" || !ALLOWED_PROFILE_TYPES.has(pt))
   ) {
     return NextResponse.json({ error: "Type de profil invalide" }, { status: 400 });
+  }
+  if (
+    data.languages !== undefined &&
+    (!Array.isArray(data.languages) ||
+      data.languages.length > MAX_LANGUAGES ||
+      data.languages.some(
+        (l) => typeof l !== "string" || (!ALLOWED_LANGUAGES.has(l) && (!l.trim() || l.length > LANGUAGE_MAX))
+      ))
+  ) {
+    return NextResponse.json({ error: "Langue(s) invalide(s)" }, { status: 400 });
   }
   // Required fields
   if (typeof data.name !== "string" || !data.name.trim()) {

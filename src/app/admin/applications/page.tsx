@@ -13,8 +13,10 @@ import {
   AVAILABILITY_LABELS,
   MICRO_ENTREPRENEUR_LABELS,
   REFERRAL_SOURCE_LABELS,
+  PROFILE_TYPE_EMOJIS,
   type Availability,
   type MicroEntrepreneurStatus,
+  type ProfileType,
 } from "@/lib/types";
 
 type VideoType = "youtube" | "drive" | "vimeo" | "instagram" | "tiktok" | "facebook" | "file";
@@ -78,7 +80,7 @@ interface Application {
   city: string;
   cities: string[] | null;
   sex: "Femme" | "Homme";
-  profile_type: string;
+  profile_types: ProfileType[];
   email: string | null;
   phone: string | null;
   photo_urls: string[];
@@ -425,7 +427,11 @@ export default function ApplicationsPage() {
                           </div>
                           <div className="flex justify-between gap-4">
                             <span className="text-gray-500">Type de profil</span>
-                            <span className="font-medium text-dark text-right">{app.profile_type}</span>
+                            <span className="font-medium text-dark text-right">
+                              {app.profile_types && app.profile_types.length > 0
+                                ? app.profile_types.map((pt) => `${PROFILE_TYPE_EMOJIS[pt]} ${pt}`).join(", ")
+                                : "—"}
+                            </span>
                           </div>
                           {app.date_of_birth && (
                             <div className="flex justify-between">

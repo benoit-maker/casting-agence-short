@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Upload, X, Link, Film, Plus } from "lucide-react";
+import { Upload, X, Link, Film, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -12,8 +12,10 @@ import { Tag } from "@/components/ui/Tag";
 import { generateDisplayName, computeAgeRanges } from "@/lib/utils";
 import {
   DEFAULT_CITIES,
+  DEFAULT_LANGUAGES,
   RATE_OPTIONS,
   PROFILE_TYPES,
+  PROFILE_TYPE_EMOJIS,
   AVAILABILITY_LABELS,
   MICRO_ENTREPRENEUR_LABELS,
   REFERRAL_SOURCE_LABELS,
@@ -64,11 +66,13 @@ export function ActorForm({ actor }: ActorFormProps) {
   const [name, setName] = useState(actor?.name || "");
   const [displayName, setDisplayName] = useState(actor?.display_name || "");
   const [sex, setSex] = useState<"Femme" | "Homme">(actor?.sex || "Femme");
-  const [profileType, setProfileType] = useState<ProfileType>(actor?.profile_type || "Acteur / Actrice");
+  const [profileTypes, setProfileTypes] = useState<ProfileType[]>(actor?.profile_types ?? ["Acteurs"]);
   const [dateOfBirth, setDateOfBirth] = useState(actor?.date_of_birth || "");
   const [cities, setCities] = useState<string[]>(actor?.cities || []);
   const [newCity, setNewCity] = useState("");
   const [editingCities, setEditingCities] = useState(!actor);
+  const [languages, setLanguages] = useState<string[]>(actor?.languages || []);
+  const [newLanguage, setNewLanguage] = useState("");
   const [phone, setPhone] = useState(actor?.phone || "");
   const [rateOption, setRateOption] = useState<string>(() => {
     if (!actor?.rate) return RATE_OPTIONS[0];
@@ -97,10 +101,19 @@ export function ActorForm({ actor }: ActorFormProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   function toggleCity(city: string) {
     setCities((prev) =>
       prev.includes(city) ? prev.filter((c) => c !== city) : [...prev, city]
+    );
+  }
+
+  function toggleProfileType(pt: ProfileType) {
+    setProfileTypes((prev) =>
+      prev.includes(pt) ? prev.filter((p) => p !== pt) : [...prev, pt]
     );
   }
 
@@ -109,6 +122,20 @@ export function ActorForm({ actor }: ActorFormProps) {
     if (trimmed && !cities.includes(trimmed)) {
       setCities((prev) => [...prev, trimmed]);
       setNewCity("");
+    }
+  }
+
+  function toggleLanguage(lang: string) {
+    setLanguages((prev) =>
+      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
+    );
+  }
+
+  function addLanguage() {
+    const trimmed = newLanguage.trim();
+    if (trimmed && !languages.includes(trimmed)) {
+      setLanguages((prev) => [...prev, trimmed]);
+      setNewLanguage("");
     }
   }
 
@@ -218,6 +245,12 @@ export function ActorForm({ actor }: ActorFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (profileTypes.length === 0) {
+      alert("Sélectionnez au moins un type de profil");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -225,7 +258,7 @@ export function ActorForm({ actor }: ActorFormProps) {
       name,
       display_name: displayName || generateDisplayName(name),
       sex,
-      profile_type: profileType,
+      profile_types: profileTypes,
       date_of_birth: dateOfBirth || null,
       cities,
       phone: phone || null,
@@ -236,6 +269,7 @@ export function ActorForm({ actor }: ActorFormProps) {
       notes,
       brands,
       has_worked_with_us: hasWorkedWithUs,
+      languages,
     };
 
     try {
@@ -263,9 +297,24 @@ export function ActorForm({ actor }: ActorFormProps) {
     }
   }
 
+  async function handleDelete() {
+    if (!actor) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const res = await fetch(`/api/actors/${actor.id}`, { method: "DELETE" });
+    if (res.ok) {
+      router.push("/admin/actors");
+      router.refresh();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setDeleteError(body.error || "Erreur lors de la suppression.");
+      setConfirmDelete(false);
+      setDeleting(false);
+    }
+  }
+
   const currentAgeRanges = dateOfBirth ? computeAgeRanges(dateOfBirth) : [];
   const hasCandidatureInfo = !!actor && (
-    (actor.languages && actor.languages.length > 0) ||
     (actor.availability && actor.availability.length > 0) ||
     actor.accepts_rate !== null ||
     !!actor.micro_entrepreneur_status ||
@@ -332,9 +381,11 @@ export function ActorForm({ actor }: ActorFormProps) {
               <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-pill bg-white/15">
                 {sex === "Femme" ? "♀" : "♂"} {sex}
               </span>
-              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-pill bg-white/15">
-                {profileType}
-              </span>
+              {profileTypes.map((pt) => (
+                <span key={pt} className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-pill bg-white/15">
+                  {PROFILE_TYPE_EMOJIS[pt]} {pt}
+                </span>
+              ))}
               {currentAgeRanges.map((age) => (
                 <span key={age} className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-pill bg-white/15">
                   {age}
@@ -342,15 +393,6 @@ export function ActorForm({ actor }: ActorFormProps) {
               ))}
             </div>
           </div>
-
-          {actor && actor.accepts_rate !== null && (
-            <div className="flex-shrink-0">
-              <span className="inline-flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-pill text-[13px] font-semibold">
-                <span className={`w-[7px] h-[7px] rounded-full ${actor.accepts_rate ? "bg-emerald-300" : "bg-red-300"}`} />
-                Tarif 250€/j {actor.accepts_rate ? "accepté" : "refusé"}
-              </span>
-            </div>
-          )}
         </div>
 
         <div className="p-8 space-y-8">
@@ -408,14 +450,14 @@ export function ActorForm({ actor }: ActorFormProps) {
                     <button
                       key={pt}
                       type="button"
-                      onClick={() => setProfileType(pt)}
+                      onClick={() => toggleProfileType(pt)}
                       className={`px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer ${
-                        profileType === pt
+                        profileTypes.includes(pt)
                           ? "bg-primary text-white"
                           : "bg-bg border border-gray-200 text-gray-600 hover:bg-gray-100"
                       }`}
                     >
-                      {pt}
+                      {PROFILE_TYPE_EMOJIS[pt]} {pt}
                     </button>
                   ))}
                 </div>
@@ -565,6 +607,59 @@ export function ActorForm({ actor }: ActorFormProps) {
             </div>
           </section>
 
+          {/* Langues */}
+          <section>
+            <SectionTitle>Langues</SectionTitle>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {DEFAULT_LANGUAGES.map((lang) => (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => toggleLanguage(lang)}
+                  className={`px-3 py-1.5 rounded-pill text-sm font-medium transition-colors cursor-pointer ${
+                    languages.includes(lang)
+                      ? "bg-primary text-white"
+                      : "bg-tag-language-bg text-tag-language-text hover:bg-primary/10"
+                  }`}
+                >
+                  {lang}
+                </button>
+              ))}
+            </div>
+            {/* Langues custom ajoutees */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {languages
+                .filter((l) => !DEFAULT_LANGUAGES.includes(l as typeof DEFAULT_LANGUAGES[number]))
+                .map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => toggleLanguage(lang)}
+                    className="px-3 py-1.5 rounded-pill text-sm font-medium bg-primary text-white cursor-pointer"
+                  >
+                    {lang} ×
+                  </button>
+                ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Ajouter une langue..."
+                value={newLanguage}
+                onChange={(e) => setNewLanguage(e.target.value)}
+                className="bg-bg"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addLanguage();
+                  }
+                }}
+              />
+              <Button type="button" variant="secondary" onClick={addLanguage}>
+                Ajouter
+              </Button>
+            </div>
+          </section>
+
           {/* Informations de candidature (lecture seule) */}
           {hasCandidatureInfo && actor && (
             <section>
@@ -574,16 +669,6 @@ export function ActorForm({ actor }: ActorFormProps) {
                   Collectées à l&apos;inscription, non modifiables ici.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {actor.languages && actor.languages.length > 0 && (
-                    <div>
-                      <span className="text-xs text-gray-400 block mb-1">Langues</span>
-                      <div className="flex flex-wrap gap-1">
-                        {actor.languages.map((lang) => (
-                          <Tag key={lang} variant="language">{lang}</Tag>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                   {actor.availability && actor.availability.length > 0 && (
                     <div>
                       <span className="text-xs text-gray-400 block mb-1">Disponibilité</span>
@@ -848,6 +933,52 @@ export function ActorForm({ actor }: ActorFormProps) {
           </section>
         </div>
       </Card>
+
+      {actor && (
+        <Card className="mt-6 p-6 border-red-200 bg-red-50/50">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-red-600 mb-3">
+            Zone sensible
+          </h2>
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm text-gray-600">
+              La suppression de cet acteur est définitive et irréversible.
+            </p>
+            {confirmDelete ? (
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-sm text-red-600 font-medium">Confirmer la suppression ?</span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                >
+                  Annuler
+                </Button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="px-4 py-2 rounded-btn text-sm font-medium bg-red-500 text-white hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  {deleting ? "Suppression..." : "Confirmer"}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-btn text-sm font-medium text-red-500 border border-red-200 hover:bg-red-50 transition-colors cursor-pointer flex-shrink-0"
+              >
+                <Trash2 className="w-4 h-4" />
+                Supprimer cet acteur
+              </button>
+            )}
+          </div>
+          {deleteError && (
+            <p className="mt-3 text-sm text-red-600">{deleteError}</p>
+          )}
+        </Card>
+      )}
 
       {error && (
         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-btn text-sm text-red-600">

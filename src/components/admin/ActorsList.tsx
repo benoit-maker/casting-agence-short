@@ -4,15 +4,28 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Trash2, X, Eye, CheckCircle2, Circle, ChevronDown, Ban, Play } from "lucide-react";
+import { Search, X, Eye, CheckCircle2, Circle, ChevronDown, Ban, Play, ArrowUpDown } from "lucide-react";
 import { Tag } from "@/components/ui/Tag";
 import { VideoModal } from "@/components/client/VideoModal";
 import { CopyActorLinkButton } from "@/components/admin/CopyActorLinkButton";
-import { AGE_RANGES, PROFILE_TYPES, BLACKLIST_REASONS, type Actor, type BlacklistReason, type UserRole } from "@/lib/types";
+import { AGE_RANGES, PROFILE_TYPES, PROFILE_TYPE_EMOJIS, BLACKLIST_REASONS, type Actor, type BlacklistReason, type UserRole } from "@/lib/types";
+import { abbreviateLanguage } from "@/lib/utils";
+
+function ProfileTypeEmojis({ profileTypes }: { profileTypes: string[] }) {
+  if (profileTypes.length === 0) return <span className="text-gray-400 text-xs">—</span>;
+  return (
+    <span className="inline-flex items-center gap-0.5" title={profileTypes.join(", ")}>
+      {profileTypes.map((pt) => (
+        <span key={pt}>{PROFILE_TYPE_EMOJIS[pt as keyof typeof PROFILE_TYPE_EMOJIS] ?? ""}</span>
+      ))}
+    </span>
+  );
+}
 
 interface ActorsListProps {
   actors: Actor[];
   role: UserRole;
+  latestBlacklistReasons?: Record<string, { reason: string; reason_detail: string | null }>;
 }
 
 function VideoCell({ actor }: { actor: Actor }) {
@@ -153,31 +166,29 @@ function BlacklistReasonPicker({
   );
 }
 
-export function ActorsList({ actors, role }: ActorsListProps) {
+export function ActorsList({ actors, role, latestBlacklistReasons = {} }: ActorsListProps) {
+  const router = useRouter();
   const isReadOnly = role === "catalogue";
   const [tab, setTab] = useState<"all" | "blacklisted">("all");
   const [search, setSearch] = useState("");
   const [filterSex, setFilterSex] = useState<"Femme" | "Homme" | null>(null);
-  const [filterProfileType, setFilterProfileType] = useState<string | null>(null);
+  const [filterProfileTypes, setFilterProfileTypes] = useState<string[]>([]);
   const [filterAge, setFilterAge] = useState<string[]>([]);
   const [filterCity, setFilterCity] = useState<string | null>(null);
   const [filterLanguages, setFilterLanguages] = useState<string[]>([]);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [filterWorked, setFilterWorked] = useState<boolean | null>(null);
+  const [sortOrder, setSortOrder] = useState<"recent" | "ancien">("recent");
   const [workedWith, setWorkedWith] = useState<Record<string, boolean>>(
     () => Object.fromEntries(actors.map((a) => [a.id, a.has_worked_with_us]))
   );
   const [blacklisted, setBlacklisted] = useState<Record<string, boolean>>(
     () => Object.fromEntries(actors.map((a) => [a.id, a.is_blacklisted]))
   );
-  const router = useRouter();
 
   const allCities = Array.from(new Set(actors.flatMap((a) => a.cities))).sort();
   const allLanguages = Array.from(new Set(actors.flatMap((a) => a.languages || []))).sort();
 
-  const hasActiveFilters = filterSex !== null || filterProfileType !== null || filterAge.length > 0 || filterCity !== null || filterLanguages.length > 0 || filterWorked !== null;
+  const hasActiveFilters = filterSex !== null || filterProfileTypes.length > 0 || filterAge.length > 0 || filterCity !== null || filterLanguages.length > 0 || filterWorked !== null;
 
   const blacklistedCount = actors.filter((a) => blacklisted[a.id]).length;
   const nonBlacklistedCount = actors.length - blacklistedCount;
@@ -189,7 +200,7 @@ export function ActorsList({ actors, role }: ActorsListProps) {
   const filtered = baseList.filter((actor) => {
     if (tab === "all") {
       if (filterSex && actor.sex !== filterSex) return false;
-      if (filterProfileType && actor.profile_type !== filterProfileType) return false;
+      if (filterProfileTypes.length > 0 && !filterProfileTypes.some((pt) => (actor.profile_types as string[]).includes(pt))) return false;
       if (filterAge.length > 0 && !filterAge.some((r) => actor.age_ranges.includes(r))) return false;
       if (filterCity && !actor.cities.includes(filterCity)) return false;
       if (filterLanguages.length > 0 && !filterLanguages.some((l) => (actor.languages || []).includes(l))) return false;
@@ -204,7 +215,11 @@ export function ActorsList({ actors, role }: ActorsListProps) {
       );
     }
     return true;
-  });
+  }).sort((a, b) =>
+    sortOrder === "recent"
+      ? +new Date(b.created_at) - +new Date(a.created_at)
+      : +new Date(a.created_at) - +new Date(b.created_at)
+  );
 
   async function unblacklistActor(actorId: string) {
     setBlacklisted((prev) => ({ ...prev, [actorId]: false }));
@@ -213,7 +228,9 @@ export function ActorsList({ actors, role }: ActorsListProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_blacklisted: false }),
     });
-    if (!res.ok) {
+    if (res.ok) {
+      router.refresh();
+    } else {
       setBlacklisted((prev) => ({ ...prev, [actorId]: true }));
     }
   }
@@ -229,7 +246,9 @@ export function ActorsList({ actors, role }: ActorsListProps) {
         reason_detail: reason === "Autre" ? detail : undefined,
       }),
     });
-    if (!res.ok) {
+    if (res.ok) {
+      router.refresh();
+    } else {
       setBlacklisted((prev) => ({ ...prev, [actorId]: false }));
     }
   }
@@ -247,31 +266,8 @@ export function ActorsList({ actors, role }: ActorsListProps) {
     }
   }
 
-  async function handleDelete(actorId: string) {
-    setDeleting(actorId);
-    setDeleteError(null);
-    const res = await fetch(`/api/actors/${actorId}`, { method: "DELETE" });
-    setConfirmDelete(null);
-    setDeleting(null);
-    if (res.ok) {
-      router.refresh();
-    } else {
-      const body = await res.json().catch(() => ({}));
-      setDeleteError(body.error || "Erreur lors de la suppression.");
-    }
-  }
-
   return (
     <>
-      {deleteError && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-btn text-sm text-red-600 flex items-center justify-between">
-          <span>{deleteError}</span>
-          <button type="button" onClick={() => setDeleteError(null)} className="ml-4 text-red-400 hover:text-red-600 cursor-pointer">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
       {/* Onglets */}
       {!isReadOnly && (
         <div className="flex gap-2 mb-6 border-b border-gray-200">
@@ -322,16 +318,15 @@ export function ActorsList({ actors, role }: ActorsListProps) {
         {/* Type de profil */}
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Type de profil</span>
-          <select
-            value={filterProfileType ?? ""}
-            onChange={(e) => setFilterProfileType(e.target.value || null)}
-            className="px-3 py-1.5 rounded-btn border border-gray-200 bg-white text-sm text-dark focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all cursor-pointer"
-          >
-            <option value="">Tous</option>
-            {PROFILE_TYPES.map((pt) => (
-              <option key={pt} value={pt}>{pt}</option>
-            ))}
-          </select>
+          <MultiSelectDropdown
+            options={PROFILE_TYPES}
+            selected={filterProfileTypes}
+            onToggle={(pt) =>
+              setFilterProfileTypes((prev) =>
+                prev.includes(pt) ? prev.filter((p) => p !== pt) : [...prev, pt]
+              )
+            }
+          />
         </div>
 
         {/* Âge */}
@@ -395,7 +390,7 @@ export function ActorsList({ actors, role }: ActorsListProps) {
         {hasActiveFilters && (
           <button
             type="button"
-            onClick={() => { setFilterSex(null); setFilterProfileType(null); setFilterAge([]); setFilterCity(null); setFilterLanguages([]); setFilterWorked(null); }}
+            onClick={() => { setFilterSex(null); setFilterProfileTypes([]); setFilterAge([]); setFilterCity(null); setFilterLanguages([]); setFilterWorked(null); }}
             className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-400 hover:text-gray-600 cursor-pointer self-end"
           >
             <X className="w-3.5 h-3.5" />
@@ -405,37 +400,50 @@ export function ActorsList({ actors, role }: ActorsListProps) {
       </div>
       )}
 
-      {/* Barre de recherche */}
-      <div className="relative mb-6">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Rechercher par nom, prénom ou ville..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 rounded-btn border border-gray-200 bg-white text-sm text-dark placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-        />
-        {search && (
-          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-            {filtered.length} résultat{filtered.length !== 1 ? "s" : ""}
-          </span>
-        )}
+      {/* Barre de recherche + tri */}
+      <div className="flex gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Rechercher par nom, prénom ou ville..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-11 pr-4 py-3 rounded-btn border border-gray-200 bg-white text-sm text-dark placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+          />
+          {search && (
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+              {filtered.length} résultat{filtered.length !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setSortOrder((prev) => (prev === "recent" ? "ancien" : "recent"))}
+          className="flex items-center gap-1.5 px-4 py-3 rounded-btn border border-gray-200 bg-white text-sm text-gray-600 hover:border-primary/50 hover:text-primary transition-all cursor-pointer flex-shrink-0"
+        >
+          <ArrowUpDown className="w-3.5 h-3.5" />
+          {sortOrder === "recent" ? "Plus récents" : "Plus anciens"}
+        </button>
       </div>
 
       {/* Tableau */}
       <div className="bg-white rounded-card border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-100">
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Photo</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Nom</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Sexe</th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Type de profil</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Âge</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Ville</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Langues</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Vidéo</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Tourné</th>
+              {tab === "blacklisted" && (
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Motif</th>
+              )}
               <th className="px-6 py-3" />
             </tr>
           </thead>
@@ -458,16 +466,13 @@ export function ActorsList({ actors, role }: ActorsListProps) {
                   )}
                 </td>
                 <td className="px-6 py-4">
-                  <p className="font-medium text-dark text-sm">{actor.name}</p>
-                  {actor.display_name && (
-                    <p className="text-xs text-gray-400">{actor.display_name}</p>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-medium text-dark text-sm">{actor.name}</p>
+                    <ProfileTypeEmojis profileTypes={actor.profile_types} />
+                  </div>
                 </td>
                 <td className="px-6 py-4">
                   <Tag variant={actor.sex === "Femme" ? "female" : "male"}>{actor.sex}</Tag>
-                </td>
-                <td className="px-6 py-4">
-                  <Tag variant="profile">{actor.profile_type}</Tag>
                 </td>
                 <td className="px-6 py-4">
                   {actor.age_ranges[0] ? (
@@ -484,15 +489,13 @@ export function ActorsList({ actors, role }: ActorsListProps) {
                   )}
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex flex-wrap gap-1">
-                    {(actor.languages || []).length === 0 ? (
-                      <span className="text-gray-400 text-xs">—</span>
-                    ) : (
-                      (actor.languages || []).map((lang) => (
-                        <Tag key={lang} variant="language">{lang}</Tag>
-                      ))
-                    )}
-                  </div>
+                  {(actor.languages || []).length === 0 ? (
+                    <span className="text-gray-400 text-xs">—</span>
+                  ) : (
+                    <span className="text-sm text-dark">
+                      {(actor.languages || []).map(abbreviateLanguage).join(" · ")}
+                    </span>
+                  )}
                 </td>
                 <td className="px-6 py-4">
                   <VideoCell actor={actor} />
@@ -517,6 +520,20 @@ export function ActorsList({ actors, role }: ActorsListProps) {
                     </button>
                   )}
                 </td>
+                {tab === "blacklisted" && (
+                  <td className="px-6 py-4">
+                    {latestBlacklistReasons[actor.id] ? (
+                      <span className="text-sm text-dark">
+                        {latestBlacklistReasons[actor.id].reason}
+                        {latestBlacklistReasons[actor.id].reason === "Autre" &&
+                          latestBlacklistReasons[actor.id].reason_detail &&
+                          ` — ${latestBlacklistReasons[actor.id].reason_detail}`}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
+                    )}
+                  </td>
+                )}
                 <td className="px-6 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
                     {!isReadOnly && (
@@ -546,33 +563,6 @@ export function ActorsList({ actors, role }: ActorsListProps) {
                     </a>
                     <CopyActorLinkButton actorId={actor.id} />
                     {!isReadOnly && (
-                      confirmDelete === actor.id ? (
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleDelete(actor.id)}
-                            disabled={deleting === actor.id}
-                            className="text-xs text-red-500 font-medium hover:text-red-700 cursor-pointer"
-                          >
-                            {deleting === actor.id ? "..." : "Confirmer"}
-                          </button>
-                          <button
-                            onClick={() => setConfirmDelete(null)}
-                            className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
-                          >
-                            Annuler
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setConfirmDelete(actor.id)}
-                          className="p-1.5 rounded-btn text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )
-                    )}
-                    {!isReadOnly && (
                       <Link
                         href={`/admin/actors/${actor.id}`}
                         className="text-sm text-primary hover:text-primary-dark font-medium"
@@ -586,7 +576,7 @@ export function ActorsList({ actors, role }: ActorsListProps) {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-6 py-12 text-center text-gray-400">
+                <td colSpan={tab === "blacklisted" ? 10 : 9} className="px-6 py-12 text-center text-gray-400">
                   {search || hasActiveFilters
                     ? "Aucun acteur trouvé pour ces critères."
                     : tab === "blacklisted"
@@ -597,6 +587,7 @@ export function ActorsList({ actors, role }: ActorsListProps) {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </>
   );

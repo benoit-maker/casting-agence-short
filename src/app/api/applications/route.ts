@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAllowedPhotoUrl, isAllowedVideoUrl } from "@/lib/auth";
-import { DEFAULT_CITIES, DEFAULT_LANGUAGES, PROFILE_TYPES, UAE_CITIES, AGE_RANGES } from "@/lib/types";
+import { DEFAULT_CITIES, DEFAULT_LANGUAGES, PROFILE_TYPES, UAE_CITIES, AGE_RANGES, UAE_AGE_RANGE_LABELS } from "@/lib/types";
 
 const NAME_MAX = 100;
 const STR_MAX = 200;
@@ -16,7 +16,8 @@ const ALLOWED_CITIES = new Set<string>([
 ]);
 const ALLOWED_LANGUAGES = new Set<string>(DEFAULT_LANGUAGES as readonly string[]);
 const ALLOWED_PROFILE_TYPES = new Set<string>(PROFILE_TYPES as readonly string[]);
-const ALLOWED_AGE_RANGES = new Set<string>(AGE_RANGES as readonly string[]);
+const ALLOWED_AGE_RANGES_FR = new Set<string>(AGE_RANGES as readonly string[]);
+const ALLOWED_AGE_RANGES_UAE = new Set<string>(Object.keys(UAE_AGE_RANGE_LABELS));
 const ALLOWED_AVAILABILITY = new Set(["flexible", "weekdays", "weekends"]);
 const ALLOWED_MICRO_STATUS = new Set(["yes", "no", "can_create"]);
 const ALLOWED_REFERRAL_SOURCES = new Set(["facebook", "publicite", "bouche_a_oreille", "recommandation"]);
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     age_range,
     cities,
     sex,
-    profile_type,
+    profile_types,
     email,
     phone,
     photo_urls,
@@ -74,9 +75,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Sexe invalide" }, { status: 400 });
   }
   if (
-    profile_type !== undefined &&
-    profile_type !== null &&
-    (typeof profile_type !== "string" || !ALLOWED_PROFILE_TYPES.has(profile_type))
+    profile_types !== undefined &&
+    profile_types !== null &&
+    (!Array.isArray(profile_types) ||
+      profile_types.length === 0 ||
+      profile_types.some((pt) => typeof pt !== "string" || !ALLOWED_PROFILE_TYPES.has(pt)))
   ) {
     return NextResponse.json(
       { error: "Type de profil invalide" },
@@ -207,18 +210,20 @@ export async function POST(request: NextRequest) {
     );
   }
   if (
-    age_range !== null &&
-    age_range !== undefined &&
-    (typeof age_range !== "string" || !ALLOWED_AGE_RANGES.has(age_range))
-  ) {
-    return NextResponse.json({ error: "age_range invalide" }, { status: 400 });
-  }
-  if (
     origin !== null &&
     origin !== undefined &&
     (typeof origin !== "string" || !["fr", "uae"].includes(origin))
   ) {
     return NextResponse.json({ error: "origin invalide" }, { status: 400 });
+  }
+  const allowedAgeRanges =
+    origin === "uae" ? ALLOWED_AGE_RANGES_UAE : ALLOWED_AGE_RANGES_FR;
+  if (
+    age_range !== null &&
+    age_range !== undefined &&
+    (typeof age_range !== "string" || !allowedAgeRanges.has(age_range))
+  ) {
+    return NextResponse.json({ error: "age_range invalide" }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -231,7 +236,7 @@ export async function POST(request: NextRequest) {
     city: (cities as string[])[0],
     cities,
     sex,
-    ...(typeof profile_type === "string" ? { profile_type } : {}),
+    ...(Array.isArray(profile_types) ? { profile_types } : {}),
     email: email || null,
     phone,
     photo_urls: photo_urls || [],

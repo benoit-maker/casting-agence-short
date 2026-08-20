@@ -6,18 +6,21 @@ import {
   isAllowedPhotoUrl,
   isAllowedVideoUrl,
 } from "@/lib/auth";
-import { BLACKLIST_REASONS, PROFILE_TYPES } from "@/lib/types";
+import { BLACKLIST_REASONS, PROFILE_TYPES, DEFAULT_LANGUAGES } from "@/lib/types";
 import { computeAgeRanges } from "@/lib/utils";
 
 const ALLOWED_BLACKLIST_REASONS = new Set<string>(BLACKLIST_REASONS as readonly string[]);
 const ALLOWED_PROFILE_TYPES = new Set<string>(PROFILE_TYPES as readonly string[]);
+const ALLOWED_LANGUAGES = new Set<string>(DEFAULT_LANGUAGES as readonly string[]);
 const REASON_DETAIL_MAX = 200;
+const LANGUAGE_MAX = 50;
+const MAX_LANGUAGES = 10;
 
 const ALLOWED_FIELDS = [
   "name",
   "display_name",
   "sex",
-  "profile_type",
+  "profile_types",
   "cities",
   "phone",
   "rate",
@@ -30,6 +33,7 @@ const ALLOWED_FIELDS = [
   "is_blacklisted",
   "has_worked_with_us",
   "date_of_birth",
+  "languages",
 ] as const;
 
 export async function PUT(
@@ -57,10 +61,23 @@ export async function PUT(
   }
 
   if (
-    data.profile_type !== undefined &&
-    (typeof data.profile_type !== "string" || !ALLOWED_PROFILE_TYPES.has(data.profile_type))
+    data.profile_types !== undefined &&
+    (!Array.isArray(data.profile_types) ||
+      data.profile_types.length === 0 ||
+      data.profile_types.some((pt) => typeof pt !== "string" || !ALLOWED_PROFILE_TYPES.has(pt)))
   ) {
     return NextResponse.json({ error: "Type de profil invalide" }, { status: 400 });
+  }
+
+  if (
+    data.languages !== undefined &&
+    (!Array.isArray(data.languages) ||
+      data.languages.length > MAX_LANGUAGES ||
+      data.languages.some(
+        (l) => typeof l !== "string" || (!ALLOWED_LANGUAGES.has(l) && (!l.trim() || l.length > LANGUAGE_MAX))
+      ))
+  ) {
+    return NextResponse.json({ error: "Langue(s) invalide(s)" }, { status: 400 });
   }
 
   if (

@@ -11,8 +11,14 @@ export interface Profile {
 export type Availability = "flexible" | "weekdays" | "weekends";
 export type MicroEntrepreneurStatus = "yes" | "no" | "can_create";
 
-export const PROFILE_TYPES = ["Créateur / Créatrice UGC", "Acteur / Actrice", "Les deux"] as const;
+export const PROFILE_TYPES = ["Acteurs", "UGC", "Whitelisting"] as const;
 export type ProfileType = typeof PROFILE_TYPES[number];
+
+export const PROFILE_TYPE_EMOJIS: Record<ProfileType, string> = {
+  Acteurs: "🎬",
+  UGC: "🤳🏻",
+  Whitelisting: "📲",
+};
 
 export const BLACKLIST_REASONS = ["Indisponible", "Inactif", "Mauvais acting", "Mauvais comportement", "Autre"] as const;
 export type BlacklistReason = typeof BLACKLIST_REASONS[number];
@@ -34,7 +40,7 @@ export interface Actor {
   name: string;
   display_name: string | null;
   sex: "Femme" | "Homme";
-  profile_type: ProfileType;
+  profile_types: ProfileType[];
   age_ranges: string[];
   cities: string[];
   phone: string | null;
@@ -85,7 +91,7 @@ export interface PublicActor {
   id: string;
   display_name: string;
   sex: "Femme" | "Homme";
-  profile_type: ProfileType;
+  profile_types: ProfileType[];
   age_ranges: string[];
   cities: string[];
   photo_url: string | null;

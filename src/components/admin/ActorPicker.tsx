@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
-import { Search, Check, GripVertical, Eye } from "lucide-react";
+import { Search, Check, GripVertical, Eye, Ban } from "lucide-react";
 import { Tag } from "@/components/ui/Tag";
 import { cn } from "@/lib/utils";
 import { AGE_RANGES, type Actor } from "@/lib/types";
@@ -32,7 +32,6 @@ export function ActorPicker({
   const filtered = useMemo(() => {
     return actors.filter((actor) => {
       if (!actor.is_active) return false;
-      if (actor.is_blacklisted) return false;
       if (search && !actor.name.toLowerCase().includes(search.toLowerCase()))
         return false;
       if (filterSex && actor.sex !== filterSex) return false;
@@ -116,12 +115,22 @@ export function ActorPicker({
                 "relative rounded-card border-2 p-2 text-left transition-all cursor-pointer",
                 isSelected
                   ? "border-primary bg-primary-light"
-                  : "border-gray-200 hover:border-primary/50"
+                  : actor.is_blacklisted
+                    ? "border-red-200 bg-red-50/40 hover:border-red-300"
+                    : "border-gray-200 hover:border-primary/50"
               )}
             >
               {isSelected && (
                 <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
                   <Check className="w-3.5 h-3.5 text-white" />
+                </div>
+              )}
+              {actor.is_blacklisted && (
+                <div
+                  title="Acteur blacklisté"
+                  className="absolute top-2 left-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"
+                >
+                  <Ban className="w-3.5 h-3.5 text-white" />
                 </div>
               )}
               {actor.photo_url ? (

@@ -32,7 +32,6 @@ export function EditCastingActors({
         .from("actors")
         .select("*")
         .eq("is_active", true)
-        .eq("is_blacklisted", false)
         .order("name")
         .then(({ data }) => {
           setAllActors((data as Actor[]) || []);
