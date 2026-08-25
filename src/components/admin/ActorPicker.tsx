@@ -30,7 +30,7 @@ export function ActorPicker({
   }, [actors]);
 
   const filtered = useMemo(() => {
-    const result = actors.filter((actor) => {
+    return actors.filter((actor) => {
       if (!actor.is_active) return false;
       if (search && !actor.name.toLowerCase().includes(search.toLowerCase()))
         return false;
@@ -39,14 +39,11 @@ export function ActorPicker({
       if (filterCity && !actor.cities.includes(filterCity)) return false;
       return true;
     });
-    // Acteurs sélectionnés en premier, ordre d'origine préservé sinon (tri stable)
-    return [...result].sort((a, b) => {
-      const aSelected = selected.includes(a.id);
-      const bSelected = selected.includes(b.id);
-      if (aSelected === bSelected) return 0;
-      return aSelected ? -1 : 1;
-    });
-  }, [actors, search, filterSex, filterAge, filterCity, selected]);
+  }, [actors, search, filterSex, filterAge, filterCity]);
+
+  // Acteurs sélectionnés regroupés dans un bloc séparé, tout en haut
+  const selectedInGrid = filtered.filter((actor) => selected.includes(actor.id));
+  const unselectedInGrid = filtered.filter((actor) => !selected.includes(actor.id));
 
   function toggleActor(id: string) {
     if (selected.includes(id)) {
@@ -109,61 +106,33 @@ export function ActorPicker({
         </select>
       </div>
 
-      {/* Grille des acteurs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {filtered.map((actor) => {
-          const isSelected = selected.includes(actor.id);
-          return (
-            <button
-              key={actor.id}
-              type="button"
-              onClick={() => toggleActor(actor.id)}
-              className={cn(
-                "relative rounded-card border-2 p-2 text-left transition-all cursor-pointer",
+      {/* Acteurs sélectionnés, regroupés en tout début de liste */}
+      {selectedInGrid.length > 0 && (
+        <div>
+          <h3 className="text-sm font-medium text-dark mb-3">Sélectionnés</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {selectedInGrid.map((actor) => (
+              <ActorCard
+                key={actor.id}
+                actor={actor}
                 isSelected
-                  ? "border-primary bg-primary-light"
-                  : actor.is_blacklisted
-                    ? "border-red-200 bg-red-50/40 hover:border-red-300"
-                    : "border-gray-200 hover:border-primary/50"
-              )}
-            >
-              {isSelected && (
-                <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                  <Check className="w-3.5 h-3.5 text-white" />
-                </div>
-              )}
-              {actor.is_blacklisted && (
-                <div
-                  title="Acteur blacklisté"
-                  className="absolute top-2 left-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"
-                >
-                  <Ban className="w-3.5 h-3.5 text-white" />
-                </div>
-              )}
-              {actor.photo_url ? (
-                <Image
-                  src={actor.photo_url}
-                  alt={actor.name}
-                  width={160}
-                  height={160}
-                  className="w-full aspect-square rounded-btn object-cover mb-2"
-                />
-              ) : (
-                <div className="w-full aspect-square rounded-btn bg-gray-100 flex items-center justify-center mb-2 text-2xl font-heading font-semibold text-gray-400">
-                  {actor.name[0]}
-                </div>
-              )}
-              <p className="text-sm font-medium text-dark truncate">
-                {actor.name}
-              </p>
-              <div className="flex flex-wrap gap-1 mt-1">
-                <Tag variant={actor.sex === "Femme" ? "female" : "male"}>
-                  {actor.sex}
-                </Tag>
-              </div>
-            </button>
-          );
-        })}
+                onClick={() => toggleActor(actor.id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Reste des acteurs disponibles */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        {unselectedInGrid.map((actor) => (
+          <ActorCard
+            key={actor.id}
+            actor={actor}
+            isSelected={false}
+            onClick={() => toggleActor(actor.id)}
+          />
+        ))}
       </div>
 
       {filtered.length === 0 && (
@@ -208,5 +177,63 @@ export function ActorPicker({
         </div>
       )}
     </div>
+  );
+}
+
+function ActorCard({
+  actor,
+  isSelected,
+  onClick,
+}: {
+  actor: Actor;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "relative rounded-card border-2 p-2 text-left transition-all cursor-pointer",
+        isSelected
+          ? "border-primary bg-primary-light"
+          : actor.is_blacklisted
+            ? "border-red-200 bg-red-50/40 hover:border-red-300"
+            : "border-gray-200 hover:border-primary/50"
+      )}
+    >
+      {isSelected && (
+        <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+          <Check className="w-3.5 h-3.5 text-white" />
+        </div>
+      )}
+      {actor.is_blacklisted && (
+        <div
+          title="Acteur blacklisté"
+          className="absolute top-2 left-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"
+        >
+          <Ban className="w-3.5 h-3.5 text-white" />
+        </div>
+      )}
+      {actor.photo_url ? (
+        <Image
+          src={actor.photo_url}
+          alt={actor.name}
+          width={160}
+          height={160}
+          className="w-full aspect-square rounded-btn object-cover mb-2"
+        />
+      ) : (
+        <div className="w-full aspect-square rounded-btn bg-gray-100 flex items-center justify-center mb-2 text-2xl font-heading font-semibold text-gray-400">
+          {actor.name[0]}
+        </div>
+      )}
+      <p className="text-sm font-medium text-dark truncate">{actor.name}</p>
+      <div className="flex flex-wrap gap-1 mt-1">
+        <Tag variant={actor.sex === "Femme" ? "female" : "male"}>
+          {actor.sex}
+        </Tag>
+      </div>
+    </button>
   );
 }
