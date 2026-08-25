@@ -90,6 +90,10 @@ export default function InscriptionUAEPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    if (!phone.trim()) {
+      alert("Phone number is required.");
+      return;
+    }
     if (videoItems.length === 0) {
       alert("You must add at least one video or link.");
       return;
@@ -172,7 +176,7 @@ export default function InscriptionUAEPage() {
           cities,
           sex,
           email: email || null,
-          phone: phone || null,
+          phone: phone.trim(),
           photo_urls: photoUrls,
           video_urls: videoUrls,
           availability,
@@ -342,10 +346,11 @@ export default function InscriptionUAEPage() {
               />
               <Input
                 id="phone"
-                label="Phone"
+                label="Phone *"
                 placeholder="+971 50 123 4567"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                required
               />
             </div>
           </Card>

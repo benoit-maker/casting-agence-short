@@ -177,7 +177,7 @@ export function ActorsList({ actors, role, latestBlacklistReasons = {} }: Actors
   const [filterCity, setFilterCity] = useState<string | null>(null);
   const [filterLanguages, setFilterLanguages] = useState<string[]>([]);
   const [filterWorked, setFilterWorked] = useState<boolean | null>(null);
-  const [sortOrder, setSortOrder] = useState<"recent" | "ancien">("recent");
+  const [sortOrder, setSortOrder] = useState<"recent" | "ancien" | "phone">("recent");
   const [workedWith, setWorkedWith] = useState<Record<string, boolean>>(
     () => Object.fromEntries(actors.map((a) => [a.id, a.has_worked_with_us]))
   );
@@ -215,11 +215,17 @@ export function ActorsList({ actors, role, latestBlacklistReasons = {} }: Actors
       );
     }
     return true;
-  }).sort((a, b) =>
-    sortOrder === "recent"
+  }).sort((a, b) => {
+    if (sortOrder === "phone") {
+      if (!a.phone && !b.phone) return 0;
+      if (!a.phone) return 1;
+      if (!b.phone) return -1;
+      return a.phone.localeCompare(b.phone);
+    }
+    return sortOrder === "recent"
       ? +new Date(b.created_at) - +new Date(a.created_at)
-      : +new Date(a.created_at) - +new Date(b.created_at)
-  );
+      : +new Date(a.created_at) - +new Date(b.created_at);
+  });
 
   async function unblacklistActor(actorId: string) {
     setBlacklisted((prev) => ({ ...prev, [actorId]: false }));
@@ -417,14 +423,18 @@ export function ActorsList({ actors, role, latestBlacklistReasons = {} }: Actors
             </span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => setSortOrder((prev) => (prev === "recent" ? "ancien" : "recent"))}
-          className="flex items-center gap-1.5 px-4 py-3 rounded-btn border border-gray-200 bg-white text-sm text-gray-600 hover:border-primary/50 hover:text-primary transition-all cursor-pointer flex-shrink-0"
-        >
-          <ArrowUpDown className="w-3.5 h-3.5" />
-          {sortOrder === "recent" ? "Plus récents" : "Plus anciens"}
-        </button>
+        <div className="relative flex-shrink-0">
+          <ArrowUpDown className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as "recent" | "ancien" | "phone")}
+            className="pl-9 pr-4 py-3 rounded-btn border border-gray-200 bg-white text-sm text-gray-600 hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all cursor-pointer appearance-none"
+          >
+            <option value="recent">Plus récents</option>
+            <option value="ancien">Plus anciens</option>
+            <option value="phone">Numéro de téléphone</option>
+          </select>
+        </div>
       </div>
 
       {/* Tableau */}

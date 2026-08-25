@@ -30,7 +30,7 @@ export function ActorPicker({
   }, [actors]);
 
   const filtered = useMemo(() => {
-    return actors.filter((actor) => {
+    const result = actors.filter((actor) => {
       if (!actor.is_active) return false;
       if (search && !actor.name.toLowerCase().includes(search.toLowerCase()))
         return false;
@@ -39,7 +39,14 @@ export function ActorPicker({
       if (filterCity && !actor.cities.includes(filterCity)) return false;
       return true;
     });
-  }, [actors, search, filterSex, filterAge, filterCity]);
+    // Acteurs sélectionnés en premier, ordre d'origine préservé sinon (tri stable)
+    return [...result].sort((a, b) => {
+      const aSelected = selected.includes(a.id);
+      const bSelected = selected.includes(b.id);
+      if (aSelected === bSelected) return 0;
+      return aSelected ? -1 : 1;
+    });
+  }, [actors, search, filterSex, filterAge, filterCity, selected]);
 
   function toggleActor(id: string) {
     if (selected.includes(id)) {
