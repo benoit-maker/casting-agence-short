@@ -211,7 +211,8 @@ export function ActorsList({ actors, role, latestBlacklistReasons = {} }: Actors
       return (
         actor.name.toLowerCase().includes(q) ||
         (actor.display_name && actor.display_name.toLowerCase().includes(q)) ||
-        actor.cities.some((c) => c.toLowerCase().includes(q))
+        actor.cities.some((c) => c.toLowerCase().includes(q)) ||
+        (actor.phone && actor.phone.toLowerCase().includes(q))
       );
     }
     return true;
