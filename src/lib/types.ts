@@ -44,6 +44,7 @@ export interface Actor {
   age_ranges: string[];
   cities: string[];
   phone: string | null;
+  email: string | null;
   rate: string | null;
   photo_url: string | null;
   video_url: string | null;
@@ -158,11 +159,4 @@ export const UAE_REFERRAL_SOURCE_LABELS: Record<string, string> = {
   publicite:        "An advertisement",
   bouche_a_oreille: "Word of mouth",
   recommandation:   "A personal recommendation",
-};
-
-export const UAE_AGE_RANGE_LABELS: Record<string, string> = {
-  "18-25 ans": "18-25 years",
-  "25-40 ans": "25-40 years",
-  "40-55 ans": "40-55 years",
-  "55+":       "55+",
 };

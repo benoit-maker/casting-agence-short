@@ -74,6 +74,7 @@ export function ActorForm({ actor }: ActorFormProps) {
   const [languages, setLanguages] = useState<string[]>(actor?.languages || []);
   const [newLanguage, setNewLanguage] = useState("");
   const [phone, setPhone] = useState(actor?.phone || "");
+  const [email, setEmail] = useState(actor?.email || "");
   const [rateOption, setRateOption] = useState<string>(() => {
     if (!actor?.rate) return RATE_OPTIONS[0];
     return (RATE_OPTIONS as readonly string[]).includes(actor.rate) ? actor.rate : "Autre";
@@ -101,6 +102,7 @@ export function ActorForm({ actor }: ActorFormProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [videoUploadError, setVideoUploadError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -195,40 +197,66 @@ export function ActorForm({ actor }: ActorFormProps) {
 
     setUploadingVideo(true);
     setVideoUploadProgress(0);
+    setVideoUploadError(null);
     setAddMode(null);
 
-    const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
-    const identifier = actor?.id || Date.now().toString();
-    const fileName = `${identifier}-${Date.now()}.${ext}`;
-    const path = `actors/videos/${fileName}`;
-
-    const progressInterval = setInterval(() => {
-      setVideoUploadProgress((prev) => {
-        if (prev >= 90) { clearInterval(progressInterval); return 90; }
-        return prev + 10;
+    try {
+      const signRes = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type,
+          folder: "actors/videos",
+        }),
       });
-    }, 500);
 
-    const { error } = await supabase.storage
-      .from("actor-photos")
-      .upload(path, file, { upsert: true });
+      if (!signRes.ok) {
+        const err = await signRes
+          .json()
+          .catch(() => ({ error: "Erreur serveur" }));
+        throw new Error(err.error || "Impossible d'obtenir l'URL d'upload");
+      }
 
-    clearInterval(progressInterval);
+      const { signedUrl, publicUrl } = await signRes.json();
 
-    if (error) {
-      console.error("Video upload error:", error);
-      alert("Erreur lors de l'upload de la video");
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", signedUrl);
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setVideoUploadProgress(Math.round((e.loaded / e.total) * 100));
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Échec de l'upload (statut ${xhr.status})`));
+          }
+        };
+        xhr.onerror = () => reject(new Error("Erreur réseau pendant l'upload de la vidéo"));
+        xhr.onabort = () => reject(new Error("Upload annulé"));
+
+        const body = new FormData();
+        body.append("cacheControl", "3600");
+        body.append("", file);
+        xhr.send(body);
+      });
+
+      setVideos((prev) => [...prev, publicUrl].slice(0, MAX_VIDEOS));
+    } catch (err) {
+      console.error("Video upload error:", err);
+      setVideoUploadError(
+        err instanceof Error ? err.message : "Erreur lors de l'upload de la vidéo"
+      );
+    } finally {
       setUploadingVideo(false);
       setVideoUploadProgress(0);
-      return;
+      if (videoInputRef.current) videoInputRef.current.value = "";
     }
-
-    setVideoUploadProgress(100);
-    const { data: urlData } = supabase.storage.from("actor-photos").getPublicUrl(path);
-    setVideos((prev) => [...prev, urlData.publicUrl].slice(0, MAX_VIDEOS));
-    setUploadingVideo(false);
-    setVideoUploadProgress(0);
-    if (videoInputRef.current) videoInputRef.current.value = "";
   }
 
   function addBrand() {
@@ -262,6 +290,7 @@ export function ActorForm({ actor }: ActorFormProps) {
       date_of_birth: dateOfBirth || null,
       cities,
       phone: phone || null,
+      email: email.trim() || null,
       rate: rateOption === "Autre" ? (rateCustom.trim() || null) : rateOption,
       photo_url: photoUrl || null,
       video_url: null,
@@ -580,6 +609,16 @@ export function ActorForm({ actor }: ActorFormProps) {
                 className="bg-bg"
               />
 
+              <Input
+                id="email"
+                label="Email (interne)"
+                type="email"
+                placeholder="pauline@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-bg"
+              />
+
               <div className="md:col-span-2">
                 <label htmlFor="rate" className="block text-sm font-medium text-dark mb-1.5">
                   Tarif (interne)
@@ -779,6 +818,20 @@ export function ActorForm({ actor }: ActorFormProps) {
                 <div className="w-full bg-gray-200 rounded-full h-1.5">
                   <div className="bg-primary h-1.5 rounded-full transition-all duration-300" style={{ width: `${videoUploadProgress}%` }} />
                 </div>
+              </div>
+            )}
+
+            {/* Erreur d'upload */}
+            {videoUploadError && !uploadingVideo && (
+              <div className="flex items-start justify-between gap-2 p-3 mb-3 bg-red-50 border border-red-200 rounded-card text-sm text-red-600">
+                <span>{videoUploadError}</span>
+                <button
+                  type="button"
+                  onClick={() => setVideoUploadError(null)}
+                  className="text-red-400 hover:text-red-600 cursor-pointer flex-shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             )}
 

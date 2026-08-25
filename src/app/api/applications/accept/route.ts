@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
             ? [app.city]
             : [],
       phone: app.phone || null,
+      email: app.email || null,
       photo_url: app.photo_urls?.[0] || null,
       video_url: app.video_urls?.[0] || null,
       video_urls: app.video_urls || [],

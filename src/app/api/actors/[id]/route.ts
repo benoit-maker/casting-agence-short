@@ -23,6 +23,7 @@ const ALLOWED_FIELDS = [
   "profile_types",
   "cities",
   "phone",
+  "email",
   "rate",
   "photo_url",
   "video_url",
@@ -58,6 +59,16 @@ export async function PUT(
 
   if (data.sex !== undefined && data.sex !== "Femme" && data.sex !== "Homme") {
     return NextResponse.json({ error: "Sexe invalide" }, { status: 400 });
+  }
+
+  if (
+    data.email !== undefined &&
+    data.email !== null &&
+    (typeof data.email !== "string" ||
+      data.email.length > 200 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
+  ) {
+    return NextResponse.json({ error: "Email invalide" }, { status: 400 });
   }
 
   if (

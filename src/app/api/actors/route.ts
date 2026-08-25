@@ -22,6 +22,7 @@ const ALLOWED_FIELDS = [
   "profile_types",
   "cities",
   "phone",
+  "email",
   "rate",
   "photo_url",
   "video_url",
@@ -74,6 +75,16 @@ export async function POST(request: NextRequest) {
   // Required fields
   if (typeof data.name !== "string" || !data.name.trim()) {
     return NextResponse.json({ error: "Nom requis" }, { status: 400 });
+  }
+
+  if (
+    data.email !== undefined &&
+    data.email !== null &&
+    (typeof data.email !== "string" ||
+      data.email.length > 200 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
+  ) {
+    return NextResponse.json({ error: "Email invalide" }, { status: 400 });
   }
 
   if (

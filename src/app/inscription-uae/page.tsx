@@ -12,19 +12,20 @@ import {
   UAE_AVAILABILITY_LABELS,
   UAE_MICRO_STATUS_LABELS,
   UAE_REFERRAL_SOURCE_LABELS,
-  UAE_AGE_RANGE_LABELS,
   type Availability,
   type MicroEntrepreneurStatus,
 } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
+import { trackCompleteRegistration } from "@/lib/metaPixel";
 
 export default function InscriptionUAEPage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const hasTracked = useRef<boolean>(false);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [ageRange, setAgeRange] = useState<string | null>(null);
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [cities, setCities] = useState<string[]>([]);
   const [sex, setSex] = useState<"Femme" | "Homme">("Femme");
   const [email, setEmail] = useState("");
@@ -167,8 +168,7 @@ export default function InscriptionUAEPage() {
         body: JSON.stringify({
           first_name: firstName,
           last_name: lastName,
-          date_of_birth: null,
-          age_range: ageRange,
+          date_of_birth: dateOfBirth || null,
           cities,
           sex,
           email: email || null,
@@ -188,6 +188,10 @@ export default function InscriptionUAEPage() {
         const err = await res.json().catch(() => ({}));
         alert(err.error || "An error occurred. Please try again.");
       } else {
+        if (!hasTracked.current) {
+          hasTracked.current = true;
+          trackCompleteRegistration(crypto.randomUUID());
+        }
         setSubmitted(true);
       }
     } catch (err) {
@@ -263,31 +267,13 @@ export default function InscriptionUAEPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-dark mb-2">
-                Age range
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {Object.keys(UAE_AGE_RANGE_LABELS).map((range) => {
-                  const selected = ageRange === range;
-                  return (
-                    <button
-                      key={range}
-                      type="button"
-                      onClick={() => setAgeRange(selected ? null : range)}
-                      className={cn(
-                        "px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer",
-                        selected
-                          ? "bg-primary text-white"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      )}
-                    >
-                      {UAE_AGE_RANGE_LABELS[range]}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <Input
+              id="dateOfBirth"
+              label="Date of birth"
+              type="date"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+            />
 
             <div>
               <label className="block text-sm font-medium text-dark mb-2">

@@ -19,7 +19,7 @@ export default async function ActorPublicPage({
     .eq("id", id)
     .single();
 
-  if (!actor || actor.is_blacklisted) {
+  if (!actor) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="text-center">

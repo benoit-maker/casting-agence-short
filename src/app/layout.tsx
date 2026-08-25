@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Rubik, Inter } from "next/font/google";
+import { MetaPixel } from "@/components/MetaPixel";
 import "./globals.css";
 
 const rubik = Rubik({
@@ -27,7 +28,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${rubik.variable} ${inter.variable}`}>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        {children}
+        <MetaPixel />
+      </body>
     </html>
   );
 }

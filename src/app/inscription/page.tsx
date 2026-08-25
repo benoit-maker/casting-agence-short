@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
+import { trackCompleteRegistration } from "@/lib/metaPixel";
 import {
   DEFAULT_CITIES,
   DEFAULT_LANGUAGES,
@@ -21,6 +22,7 @@ import { createClient } from "@/lib/supabase/client";
 export default function InscriptionPage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const hasTracked = useRef<boolean>(false);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -258,6 +260,10 @@ export default function InscriptionPage() {
         const err = await res.json().catch(() => ({}));
         alert(err.error || "Erreur lors de l'envoi. Veuillez réessayer.");
       } else {
+        if (!hasTracked.current) {
+          hasTracked.current = true;
+          trackCompleteRegistration(crypto.randomUUID());
+        }
         setSubmitted(true);
       }
     } catch (err) {

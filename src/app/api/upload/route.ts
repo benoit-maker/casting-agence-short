@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAuth } from "@/lib/auth";
 
 // Whitelist d'extensions autorisées
 const ALLOWED_EXTENSIONS = new Set([
@@ -14,7 +15,11 @@ const ALLOWED_EXTENSIONS = new Set([
 
 const ALLOWED_MIME_PREFIXES = ["image/", "video/"];
 
-const ALLOWED_FOLDERS = new Set(["applications", "applications/videos"]);
+// Dossiers publics : formulaires de candidature (/inscription, /inscription-uae), non authentifiés
+const PUBLIC_FOLDERS = new Set(["applications", "applications/videos"]);
+// Dossiers admin : reservés aux fiches acteurs, requiert une session super_admin/project_manager
+const ADMIN_FOLDERS = new Set(["actors", "actors/videos"]);
+const ALLOWED_FOLDERS = new Set([...PUBLIC_FOLDERS, ...ADMIN_FOLDERS]);
 
 const FILENAME_MAX = 200;
 
@@ -59,6 +64,14 @@ export async function POST(request: NextRequest) {
       { error: "Dossier non autorisé" },
       { status: 403 }
     );
+  }
+
+  // Dossiers admin : reservés aux utilisateurs authentifiés autorisés à gérer les fiches acteurs
+  if (ADMIN_FOLDERS.has(folder)) {
+    const auth = await requireAuth(["super_admin", "project_manager"]);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
   }
 
   // Extension whitelist
