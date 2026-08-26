@@ -63,6 +63,42 @@ export function ActorPicker({
 
   return (
     <div className="space-y-6">
+      {/* Acteurs sélectionnés */}
+      {selectedActors.length > 0 && (
+        <div className="border-b border-gray-200 pb-4">
+          <h3 className="text-sm font-medium text-dark mb-3">
+            Acteurs sélectionnés ({selectedActors.length})
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {selectedActors.map((actor, index) => (
+              <div
+                key={actor.id}
+                className="flex items-center gap-2 bg-primary-light rounded-pill px-3 py-1.5"
+              >
+                <GripVertical className="w-3 h-3 text-gray-400" />
+                <a
+                  href={`/a/${actor.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 text-sm font-medium text-primary hover:underline group/link"
+                >
+                  {index + 1}. {actor.name}
+                  <Eye className="w-3 h-3 opacity-0 group-hover/link:opacity-60 transition-opacity" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => removeActor(actor.id)}
+                  className="text-primary/50 hover:text-primary cursor-pointer"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Filtres */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
@@ -139,42 +175,6 @@ export function ActorPicker({
         <p className="text-center text-gray-400 py-8">
           Aucun acteur trouvé avec ces filtres.
         </p>
-      )}
-
-      {/* Acteurs sélectionnés */}
-      {selectedActors.length > 0 && (
-        <div className="border-t border-gray-200 pt-4">
-          <h3 className="text-sm font-medium text-dark mb-3">
-            Acteurs sélectionnés ({selectedActors.length})
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {selectedActors.map((actor, index) => (
-              <div
-                key={actor.id}
-                className="flex items-center gap-2 bg-primary-light rounded-pill px-3 py-1.5"
-              >
-                <GripVertical className="w-3 h-3 text-gray-400" />
-                <a
-                  href={`/a/${actor.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1 text-sm font-medium text-primary hover:underline group/link"
-                >
-                  {index + 1}. {actor.name}
-                  <Eye className="w-3 h-3 opacity-0 group-hover/link:opacity-60 transition-opacity" />
-                </a>
-                <button
-                  type="button"
-                  onClick={() => removeActor(actor.id)}
-                  className="text-primary/50 hover:text-primary cursor-pointer"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
       )}
     </div>
   );
