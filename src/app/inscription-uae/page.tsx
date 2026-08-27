@@ -458,7 +458,8 @@ export default function InscriptionUAEPage() {
               Photos
             </h2>
             <p className="text-sm text-gray-400">
-              Add a profile photo (front-facing portrait preferred).
+              Add a professional profile photo. This photo cannot be modified
+              afterwards.
             </p>
 
             <div className="flex flex-wrap gap-3">
@@ -507,9 +508,19 @@ export default function InscriptionUAEPage() {
               Presentation videos *
             </h2>
             <p className="text-sm text-gray-400">
-              <strong>At least one video is required.</strong> Upload video files or
-              paste links (YouTube, Google Drive…). Maximum {MAX_VIDEO_ITEMS} items
-              total.
+              Minimum required content. Upload video files or paste links (YouTube,
+              Google Drive...). Maximum {MAX_VIDEO_ITEMS} pieces of content total.
+              <br />
+              <br />
+              Film yourself introducing yourself: first name, age, city, your
+              experience or motivation for acting for brands. Feel free to show
+              your personality and your world — these videos will be viewed
+              directly by our clients. You can also add acting reels or demo
+              tapes in addition to your introduction.
+              <br />
+              <br />
+              Warning: if the video is not professional quality, your
+              application will be automatically rejected.
             </p>
 
             <div className="space-y-2">
