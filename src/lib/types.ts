@@ -77,6 +77,7 @@ export interface Casting {
   selected_actor_id: string | null;
   selected_at: string | null;
   expires_at: string | null;
+  completed_override: boolean | null;
   created_at: string;
   updated_at: string;
 }

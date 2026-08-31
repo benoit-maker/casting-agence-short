@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/Card";
 import { Tag } from "@/components/ui/Tag";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { CompletedStatusToggle } from "@/components/admin/CompletedStatusToggle";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
 import { DeleteCastingButton } from "@/components/admin/DeleteCastingButton";
 import { EditCastingActors } from "@/components/admin/EditCastingActors";
@@ -61,6 +62,12 @@ export default async function CastingDetailPage({
           {casting.project_name && (
             <p className="text-gray-400 mt-1">{casting.project_name}</p>
           )}
+          <div className="mt-3">
+            <CompletedStatusToggle
+              castingId={casting.id}
+              completedOverride={casting.completed_override}
+            />
+          </div>
         </div>
         <DeleteCastingButton castingId={casting.id} />
       </div>

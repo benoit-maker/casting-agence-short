@@ -45,15 +45,38 @@ export async function PUT(
     return NextResponse.json({ error: "Body invalide" }, { status: 400 });
   }
 
-  const { client_name } = (body as { client_name?: unknown }) ?? {};
+  const { client_name, completed_override } =
+    (body as { client_name?: unknown; completed_override?: unknown }) ?? {};
 
-  if (
-    typeof client_name !== "string" ||
-    client_name.trim().length === 0 ||
-    client_name.length > 200
-  ) {
+  const updates: Record<string, unknown> = {};
+
+  if (client_name !== undefined) {
+    if (
+      typeof client_name !== "string" ||
+      client_name.trim().length === 0 ||
+      client_name.length > 200
+    ) {
+      return NextResponse.json(
+        { error: "client_name invalide (1-200 caractères)" },
+        { status: 400 }
+      );
+    }
+    updates.client_name = client_name.trim();
+  }
+
+  if (completed_override !== undefined) {
+    if (completed_override !== null && typeof completed_override !== "boolean") {
+      return NextResponse.json(
+        { error: "completed_override invalide (true, false ou null)" },
+        { status: 400 }
+      );
+    }
+    updates.completed_override = completed_override;
+  }
+
+  if (Object.keys(updates).length === 0) {
     return NextResponse.json(
-      { error: "client_name invalide (1-200 caractères)" },
+      { error: "Aucun champ à mettre à jour" },
       { status: 400 }
     );
   }
@@ -62,7 +85,7 @@ export async function PUT(
 
   const { data: casting, error } = await admin
     .from("castings")
-    .update({ client_name: client_name.trim() })
+    .update(updates)
     .eq("id", id)
     .select()
     .single();

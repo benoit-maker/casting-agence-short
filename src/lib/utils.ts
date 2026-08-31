@@ -51,6 +51,16 @@ export function computeAgeRanges(dateOfBirth: string | null | undefined): string
   return ["55+"];
 }
 
+const CASTING_AUTO_COMPLETE_MS = 14 * 24 * 60 * 60 * 1000;
+
+export function isCastingCompleted(casting: {
+  created_at: string;
+  completed_override: boolean | null;
+}): boolean {
+  if (casting.completed_override !== null) return casting.completed_override;
+  return Date.now() - new Date(casting.created_at).getTime() >= CASTING_AUTO_COMPLETE_MS;
+}
+
 export function getCastingUrl(slug: string): string {
   const base = process.env.NEXT_PUBLIC_APP_URL || "https://casting.agenceshort.fr";
   return `${base}/c/${slug}`;
