@@ -62,6 +62,7 @@ export interface Actor {
   date_of_birth: string | null;
   has_worked_with_us: boolean;
   referral_source: string | null;
+  origin: "fr" | "uae";
   created_at: string;
   updated_at: string;
 }

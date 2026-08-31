@@ -172,6 +172,7 @@ export function ActorsList({ actors, role, latestBlacklistReasons = {} }: Actors
   const [tab, setTab] = useState<"all" | "blacklisted">("all");
   const [search, setSearch] = useState("");
   const [filterSex, setFilterSex] = useState<"Femme" | "Homme" | null>(null);
+  const [filterOrigin, setFilterOrigin] = useState<"fr" | "uae" | null>(null);
   const [filterProfileTypes, setFilterProfileTypes] = useState<string[]>([]);
   const [filterAge, setFilterAge] = useState<string[]>([]);
   const [filterCity, setFilterCity] = useState<string | null>(null);
@@ -188,7 +189,7 @@ export function ActorsList({ actors, role, latestBlacklistReasons = {} }: Actors
   const allCities = Array.from(new Set(actors.flatMap((a) => a.cities))).sort();
   const allLanguages = Array.from(new Set(actors.flatMap((a) => a.languages || []))).sort();
 
-  const hasActiveFilters = filterSex !== null || filterProfileTypes.length > 0 || filterAge.length > 0 || filterCity !== null || filterLanguages.length > 0 || filterWorked !== null;
+  const hasActiveFilters = filterSex !== null || filterOrigin !== null || filterProfileTypes.length > 0 || filterAge.length > 0 || filterCity !== null || filterLanguages.length > 0 || filterWorked !== null;
 
   const blacklistedCount = actors.filter((a) => blacklisted[a.id]).length;
   const nonBlacklistedCount = actors.length - blacklistedCount;
@@ -200,6 +201,7 @@ export function ActorsList({ actors, role, latestBlacklistReasons = {} }: Actors
   const filtered = baseList.filter((actor) => {
     if (tab === "all") {
       if (filterSex && actor.sex !== filterSex) return false;
+      if (filterOrigin && actor.origin !== filterOrigin) return false;
       if (filterProfileTypes.length > 0 && !filterProfileTypes.some((pt) => (actor.profile_types as string[]).includes(pt))) return false;
       if (filterAge.length > 0 && !filterAge.some((r) => actor.age_ranges.includes(r))) return false;
       if (filterCity && !actor.cities.includes(filterCity)) return false;
@@ -322,6 +324,30 @@ export function ActorsList({ actors, role, latestBlacklistReasons = {} }: Actors
           </div>
         </div>
 
+        {/* Origine */}
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Origine</span>
+          <div className="flex gap-1">
+            {([
+              ["fr", "France"],
+              ["uae", "UAE"],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setFilterOrigin(filterOrigin === value ? null : value)}
+                className={`px-3 py-1.5 rounded-btn text-sm font-medium transition-colors cursor-pointer ${
+                  filterOrigin === value
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Type de profil */}
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Type de profil</span>
@@ -397,7 +423,7 @@ export function ActorsList({ actors, role, latestBlacklistReasons = {} }: Actors
         {hasActiveFilters && (
           <button
             type="button"
-            onClick={() => { setFilterSex(null); setFilterProfileTypes([]); setFilterAge([]); setFilterCity(null); setFilterLanguages([]); setFilterWorked(null); }}
+            onClick={() => { setFilterSex(null); setFilterOrigin(null); setFilterProfileTypes([]); setFilterAge([]); setFilterCity(null); setFilterLanguages([]); setFilterWorked(null); }}
             className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-400 hover:text-gray-600 cursor-pointer self-end"
           >
             <X className="w-3.5 h-3.5" />
@@ -480,6 +506,11 @@ export function ActorsList({ actors, role, latestBlacklistReasons = {} }: Actors
                   <div className="flex items-center gap-1.5">
                     <p className="font-medium text-dark text-sm">{actor.name}</p>
                     <ProfileTypeEmojis profileTypes={actor.profile_types} />
+                    {actor.origin === "uae" && (
+                      <span className="px-2 py-0.5 rounded-pill bg-blue-50 text-blue-600 text-xs font-medium">
+                        🇦🇪 UAE
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4">

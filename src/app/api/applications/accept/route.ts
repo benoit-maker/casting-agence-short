@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       languages: app.languages || [],
       date_of_birth: app.date_of_birth || null,
       referral_source: app.referral_source || null,
+      origin: app.origin || "fr",
       is_active: true,
     })
     .select()
