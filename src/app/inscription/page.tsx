@@ -116,6 +116,14 @@ export default function InscriptionPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    if (!dateOfBirth) {
+      alert("La date de naissance est obligatoire.");
+      return;
+    }
+    if (!email.trim()) {
+      alert("L'adresse email est obligatoire.");
+      return;
+    }
     if (!phone.trim()) {
       alert("Le numéro de téléphone est obligatoire.");
       return;
@@ -240,10 +248,10 @@ export default function InscriptionPage() {
         body: JSON.stringify({
           first_name: firstName,
           last_name: lastName,
-          date_of_birth: dateOfBirth || null,
+          date_of_birth: dateOfBirth,
           cities: city ? [city] : [],
           sex,
-          email: email || null,
+          email: email.trim(),
           phone: phone.trim(),
           photo_urls: photoUrls,
           video_urls: videoUrls,
@@ -344,10 +352,11 @@ export default function InscriptionPage() {
 
             <Input
               id="dateOfBirth"
-              label="Date de naissance"
+              label="Date de naissance *"
               type="date"
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
+              required
             />
 
             <div>
@@ -406,11 +415,12 @@ export default function InscriptionPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 id="email"
-                label="Email"
+                label="Email *"
                 type="email"
                 placeholder="marie@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
               <Input
                 id="phone"

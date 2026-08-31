@@ -90,6 +90,14 @@ export default function InscriptionUAEPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    if (!dateOfBirth) {
+      alert("Date of birth is required.");
+      return;
+    }
+    if (!email.trim()) {
+      alert("Email address is required.");
+      return;
+    }
     if (!phone.trim()) {
       alert("Phone number is required.");
       return;
@@ -172,10 +180,10 @@ export default function InscriptionUAEPage() {
         body: JSON.stringify({
           first_name: firstName,
           last_name: lastName,
-          date_of_birth: dateOfBirth || null,
+          date_of_birth: dateOfBirth,
           cities,
           sex,
-          email: email || null,
+          email: email.trim(),
           phone: phone.trim(),
           photo_urls: photoUrls,
           video_urls: videoUrls,
@@ -273,10 +281,11 @@ export default function InscriptionUAEPage() {
 
             <Input
               id="dateOfBirth"
-              label="Date of birth"
+              label="Date of birth *"
               type="date"
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
+              required
             />
 
             <div>
@@ -338,11 +347,12 @@ export default function InscriptionUAEPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 id="email"
-                label="Email"
+                label="Email *"
                 type="email"
                 placeholder="john@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
               <Input
                 id="phone"

@@ -97,24 +97,23 @@ export async function POST(request: NextRequest) {
     );
   }
   if (
-    date_of_birth !== undefined &&
-    date_of_birth !== null &&
-    (typeof date_of_birth !== "string" ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(date_of_birth))
+    typeof date_of_birth !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(date_of_birth)
   ) {
     return NextResponse.json(
-      { error: "Date de naissance invalide" },
+      { error: "Date de naissance invalide ou manquante" },
       { status: 400 }
     );
   }
   if (
-    email !== undefined &&
-    email !== null &&
-    (typeof email !== "string" ||
-      email.length > 200 ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    typeof email !== "string" ||
+    email.length > 200 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   ) {
-    return NextResponse.json({ error: "Email invalide" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Email invalide ou manquant" },
+      { status: 400 }
+    );
   }
   if (!isValidString(phone, 30)) {
     return NextResponse.json(
@@ -228,13 +227,13 @@ export async function POST(request: NextRequest) {
   const { error } = await admin.from("applications").insert({
     first_name,
     last_name,
-    date_of_birth: date_of_birth || null,
+    date_of_birth,
     age_range: age_range || null,
     city: (cities as string[])[0],
     cities,
     sex,
     ...(Array.isArray(profile_types) ? { profile_types } : {}),
-    email: email || null,
+    email,
     phone,
     photo_urls: photo_urls || [],
     video_urls: video_urls || [],
