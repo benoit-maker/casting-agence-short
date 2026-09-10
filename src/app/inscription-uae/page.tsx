@@ -26,7 +26,7 @@ export default function InscriptionUAEPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
-  const [cities, setCities] = useState<string[]>([]);
+  const [city, setCity] = useState<string | null>(null);
   const [sex, setSex] = useState<"Femme" | "Homme">("Femme");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -106,8 +106,8 @@ export default function InscriptionUAEPage() {
       alert("You must add at least one video or link.");
       return;
     }
-    if (cities.length === 0) {
-      alert("You must select at least one city.");
+    if (!city) {
+      alert("Please select a city.");
       return;
     }
     if (availability.length === 0) {
@@ -181,7 +181,7 @@ export default function InscriptionUAEPage() {
           first_name: firstName,
           last_name: lastName,
           date_of_birth: dateOfBirth,
-          cities,
+          cities: city ? [city] : [],
           sex,
           email: email.trim(),
           phone: phone.trim(),
@@ -290,23 +290,19 @@ export default function InscriptionUAEPage() {
 
             <div>
               <label className="block text-sm font-medium text-dark mb-2">
-                City / Cities *{" "}
-                <span className="text-gray-400 font-normal">(multiple selection)</span>
+                City *{" "}
+                <span className="text-gray-400 font-normal">
+                  (your closest city)
+                </span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {UAE_CITIES.map((c) => {
-                  const selected = cities.includes(c);
+                  const selected = city === c;
                   return (
                     <button
                       key={c}
                       type="button"
-                      onClick={() =>
-                        setCities((prev) =>
-                          prev.includes(c)
-                            ? prev.filter((x) => x !== c)
-                            : [...prev, c]
-                        )
-                      }
+                      onClick={() => setCity(c)}
                       className={cn(
                         "px-4 py-2 rounded-btn text-sm font-medium transition-colors cursor-pointer",
                         selected
