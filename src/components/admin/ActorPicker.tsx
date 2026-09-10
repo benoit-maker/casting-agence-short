@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Search, Check, Ban } from "lucide-react";
 import { Tag } from "@/components/ui/Tag";
 import { cn } from "@/lib/utils";
-import { AGE_RANGES, type Actor } from "@/lib/types";
+import { AGE_RANGES_WITH_LEGACY, type Actor } from "@/lib/types";
 
 interface ActorPickerProps {
   actors: Actor[];
@@ -84,7 +84,7 @@ export function ActorPicker({
           className="px-4 py-2.5 rounded-btn border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
         >
           <option value="">Toutes les tranches</option>
-          {AGE_RANGES.map((age) => (
+          {AGE_RANGES_WITH_LEGACY.map((age) => (
             <option key={age} value={age}>{age}</option>
           ))}
         </select>

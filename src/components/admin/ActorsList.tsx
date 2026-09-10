@@ -8,7 +8,7 @@ import { Search, X, Eye, CheckCircle2, Circle, ChevronDown, Ban, Play, ArrowUpDo
 import { Tag } from "@/components/ui/Tag";
 import { VideoModal } from "@/components/client/VideoModal";
 import { CopyActorLinkButton } from "@/components/admin/CopyActorLinkButton";
-import { AGE_RANGES, PROFILE_TYPES, PROFILE_TYPE_EMOJIS, BLACKLIST_REASONS, type Actor, type BlacklistReason, type UserRole } from "@/lib/types";
+import { AGE_RANGES_WITH_LEGACY, PROFILE_TYPES, PROFILE_TYPE_EMOJIS, BLACKLIST_REASONS, type Actor, type BlacklistReason, type UserRole } from "@/lib/types";
 import { abbreviateLanguage } from "@/lib/utils";
 
 function ProfileTypeEmojis({ profileTypes }: { profileTypes: string[] }) {
@@ -366,7 +366,7 @@ export function ActorsList({ actors, role, latestBlacklistReasons = {} }: Actors
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Âge</span>
           <MultiSelectDropdown
-            options={AGE_RANGES}
+            options={AGE_RANGES_WITH_LEGACY}
             selected={filterAge}
             onToggle={(range) =>
               setFilterAge((prev) =>

@@ -125,7 +125,17 @@ export const REFERRAL_SOURCE_LABELS: Record<string, string> = {
   recommandation:   "La recommandation d'une connaissance",
 };
 
-export const AGE_RANGES = ["Moins de 18 ans", "18-25 ans", "25-40 ans", "40-55 ans", "55+"] as const;
+export const AGE_RANGES = ["Moins de 18 ans", "18-25 ans", "25-34 ans", "35-40 ans", "40-55 ans", "55+"] as const;
+
+// Valeur legacy attribuée par migration aux profils "25-40 ans" sans date de naissance
+// (impossible de les reclasser automatiquement). N'est jamais proposée en saisie — seulement
+// écrite en base par la migration SQL, puis remplacée dès qu'un admin renseigne la date de
+// naissance et sauvegarde le profil (computeAgeRanges recalcule alors la bonne tranche).
+export const LEGACY_AGE_RANGE_TO_CLARIFY = "25-40 ans (à préciser)";
+
+// À utiliser uniquement pour afficher/filtrer des valeurs déjà stockées (ActorsList,
+// ActorPicker, stats) — jamais pour valider une saisie entrante.
+export const AGE_RANGES_WITH_LEGACY = [...AGE_RANGES, LEGACY_AGE_RANGE_TO_CLARIFY] as const;
 
 export const DEFAULT_LANGUAGES = ["Français", "Espagnol", "Anglais"] as const;
 

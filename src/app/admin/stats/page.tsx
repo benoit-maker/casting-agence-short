@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { StatsView } from "@/components/admin/StatsView";
-import { AGE_RANGES, DEFAULT_CITIES, REFERRAL_SOURCE_LABELS } from "@/lib/types";
+import { AGE_RANGES_WITH_LEGACY, DEFAULT_CITIES, REFERRAL_SOURCE_LABELS } from "@/lib/types";
 import type { Actor } from "@/lib/types";
 import type { BlacklistWeekStat } from "@/components/admin/BlacklistWeeklyStats";
 import type { PubliciteMonthStat } from "@/components/admin/PubliciteMonthlyStats";
@@ -42,7 +42,7 @@ function groupByMonthSexAge(actors: Actor[]): PubliciteMonthStat[] {
       const femmes = monthActors.filter((a) => a.sex === "Femme").length;
       const hommes = monthActors.filter((a) => a.sex === "Homme").length;
       const monthTotal = monthActors.length;
-      const ageRanges = AGE_RANGES.map((range) => {
+      const ageRanges = AGE_RANGES_WITH_LEGACY.map((range) => {
         const count = monthActors.filter((a) => a.age_ranges.includes(range)).length;
         return { label: range, count, pct: monthTotal ? Math.round((count / monthTotal) * 100) : 0 };
       });
@@ -88,7 +88,7 @@ export default async function StatsPage() {
     { label: "Hommes", count: actors.filter((a) => a.sex === "Homme").length },
   ].map((d) => ({ ...d, pct: total ? Math.round((d.count / total) * 100) : 0 }));
 
-  const ageRanges = AGE_RANGES.map((range) => {
+  const ageRanges = AGE_RANGES_WITH_LEGACY.map((range) => {
     const count = actors.filter((a) => a.age_ranges.includes(range)).length;
     return { label: range, count, pct: total ? Math.round((count / total) * 100) : 0 };
   });
@@ -99,7 +99,7 @@ export default async function StatsPage() {
   }).sort((a, b) => b.count - a.count);
 
   const allProfiles = SEXES.flatMap((s) =>
-    AGE_RANGES.map((range) => ({
+    AGE_RANGES_WITH_LEGACY.map((range) => ({
       sex: s,
       ageRange: range,
       count: actors.filter((a) => a.sex === s && a.age_ranges.includes(range)).length,
@@ -119,7 +119,7 @@ export default async function StatsPage() {
     { label: "Femmes", count: publiciteActors.filter((a) => a.sex === "Femme").length },
     { label: "Hommes", count: publiciteActors.filter((a) => a.sex === "Homme").length },
   ].map((d) => ({ ...d, pct: publiciteTotal ? Math.round((d.count / publiciteTotal) * 100) : 0 }));
-  const publiciteAgeRanges = AGE_RANGES.map((range) => {
+  const publiciteAgeRanges = AGE_RANGES_WITH_LEGACY.map((range) => {
     const count = publiciteActors.filter((a) => a.age_ranges.includes(range)).length;
     return { label: range, count, pct: publiciteTotal ? Math.round((count / publiciteTotal) * 100) : 0 };
   });

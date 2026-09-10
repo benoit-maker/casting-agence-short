@@ -51,7 +51,8 @@ export function computeAgeRanges(dateOfBirth: string | null | undefined): string
   if (age === null) return [];
   if (age < 18) return ["Moins de 18 ans"];
   if (age < 25) return ["18-25 ans"];
-  if (age < 40) return ["25-40 ans"];
+  if (age < 35) return ["25-34 ans"];
+  if (age < 40) return ["35-40 ans"];
   if (age < 55) return ["40-55 ans"];
   return ["55+"];
 }
