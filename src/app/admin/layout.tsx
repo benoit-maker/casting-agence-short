@@ -60,7 +60,7 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen bg-bg">
       <Sidebar profile={profile as Profile} />
-      <main className="flex-1 p-8">{children}</main>
+      <main className="flex-1 min-w-0 p-8">{children}</main>
     </div>
   );
 }

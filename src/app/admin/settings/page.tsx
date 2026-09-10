@@ -140,6 +140,7 @@ export default function SettingsPage() {
       )}
 
       <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-100">
@@ -207,6 +208,7 @@ export default function SettingsPage() {
             )}
           </tbody>
         </table>
+        </div>
       </Card>
     </div>
   );
