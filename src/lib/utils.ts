@@ -38,12 +38,17 @@ export function generateDisplayName(fullName: string): string {
   return `${parts[0]} ${parts[parts.length - 1][0]}.`;
 }
 
-export function computeAgeRanges(dateOfBirth: string | null | undefined): string[] {
-  if (!dateOfBirth) return [];
+export function computeAge(dateOfBirth: string | null | undefined): number | null {
+  if (!dateOfBirth) return null;
   const birthDate = new Date(dateOfBirth);
-  const age = Math.floor(
+  return Math.floor(
     (Date.now() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
   );
+}
+
+export function computeAgeRanges(dateOfBirth: string | null | undefined): string[] {
+  const age = computeAge(dateOfBirth);
+  if (age === null) return [];
   if (age < 18) return ["Moins de 18 ans"];
   if (age < 25) return ["18-25 ans"];
   if (age < 40) return ["25-40 ans"];

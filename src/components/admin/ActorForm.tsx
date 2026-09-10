@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Tag } from "@/components/ui/Tag";
-import { generateDisplayName, computeAgeRanges } from "@/lib/utils";
+import { generateDisplayName, computeAgeRanges, computeAge } from "@/lib/utils";
 import {
   DEFAULT_CITIES,
   DEFAULT_LANGUAGES,
@@ -343,6 +343,7 @@ export function ActorForm({ actor }: ActorFormProps) {
   }
 
   const currentAgeRanges = dateOfBirth ? computeAgeRanges(dateOfBirth) : [];
+  const currentAge = dateOfBirth ? computeAge(dateOfBirth) : null;
   const hasCandidatureInfo = !!actor && (
     (actor.availability && actor.availability.length > 0) ||
     actor.accepts_rate !== null ||
@@ -512,6 +513,9 @@ export function ActorForm({ actor }: ActorFormProps) {
                     ))
                   ) : (
                     <span className="text-gray-400 text-sm">—</span>
+                  )}
+                  {currentAge !== null && (
+                    <span className="text-sm text-gray-500">{currentAge} ans</span>
                   )}
                   <span className="text-xs text-gray-400">calculée auto</span>
                 </div>
