@@ -22,6 +22,7 @@ export function ActorPicker({
   const [filterSex, setFilterSex] = useState<string>("");
   const [filterAge, setFilterAge] = useState<string>("");
   const [filterCity, setFilterCity] = useState<string>("");
+  const [filterUaeOnly, setFilterUaeOnly] = useState(false);
 
   const allCities = useMemo(() => {
     const cities = new Set<string>();
@@ -37,9 +38,10 @@ export function ActorPicker({
       if (filterSex && actor.sex !== filterSex) return false;
       if (filterAge && !actor.age_ranges.includes(filterAge)) return false;
       if (filterCity && !actor.cities.includes(filterCity)) return false;
+      if (filterUaeOnly && actor.origin !== "uae") return false;
       return true;
     });
-  }, [actors, search, filterSex, filterAge, filterCity]);
+  }, [actors, search, filterSex, filterAge, filterCity, filterUaeOnly]);
 
   // Acteurs sélectionnés regroupés dans un bloc séparé, tout en haut
   const selectedInGrid = filtered.filter((actor) => selected.includes(actor.id));
@@ -96,6 +98,18 @@ export function ActorPicker({
             <option key={city} value={city}>{city}</option>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={() => setFilterUaeOnly((v) => !v)}
+          className={cn(
+            "px-4 py-2.5 rounded-btn border text-sm font-medium transition-colors cursor-pointer",
+            filterUaeOnly
+              ? "border-primary bg-primary text-white"
+              : "border-gray-200 text-gray-600 hover:bg-gray-50"
+          )}
+        >
+          🇦🇪 UAE
+        </button>
       </div>
 
       {/* Acteurs sélectionnés, regroupés en tout début de liste */}
@@ -189,6 +203,11 @@ function ActorCard({
         <Tag variant={actor.sex === "Femme" ? "female" : "male"}>
           {actor.sex}
         </Tag>
+        {actor.origin === "uae" && (
+          <span className="px-2 py-0.5 rounded-pill bg-blue-50 text-blue-600 text-xs font-medium">
+            🇦🇪 UAE
+          </span>
+        )}
       </div>
     </button>
   );
